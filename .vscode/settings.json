@@ -1,0 +1,8 @@
+{
+  "python.defaultInterpreterPath": "D:/ANACONDA/python.exe",
+  "python.terminal.activateEnvironment": false,
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}"
+  ],
+  "python.analysis.indexing": true
+}

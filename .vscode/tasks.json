@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "启动 Streamlit 量化平台",
+      "type": "process",
+      "command": "D:/ANACONDA/python.exe",
+      "args": [
+        "-m",
+        "streamlit",
+        "run",
+        "app.py",
+        "--server.headless",
+        "true",
+        "--server.port",
+        "8501",
+        "--browser.gatherUsageStats",
+        "false"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
