@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import escape
 from pathlib import Path
 
 import streamlit as st
@@ -644,6 +645,54 @@ st.markdown(
         line-height: 1.65;
     }
 
+    .feature-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .58rem;
+        min-height: 112px;
+        padding: 1rem;
+        border: 1px solid rgba(125, 211, 252, .13);
+        border-radius: 16px;
+        background:
+            linear-gradient(145deg, rgba(10, 26, 46, .86), rgba(6, 15, 28, .78)),
+            radial-gradient(circle at 100% 0, rgba(112, 216, 229, .14), transparent 42%);
+        box-shadow: inset 0 1px rgba(255, 255, 255, .05);
+    }
+
+    .feature-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .46rem;
+        padding: .48rem .7rem .48rem .48rem;
+        border: 1px solid rgba(155, 131, 216, .18);
+        border-radius: 999px;
+        background: rgba(19, 31, 53, .72);
+        color: #dbeafe;
+        font-size: .78rem;
+        line-height: 1;
+        box-shadow: inset 0 1px rgba(255, 255, 255, .05);
+        transition: transform .24s ease, border-color .24s ease, background .24s ease;
+        animation: quantFadeUp .45s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .feature-chip:hover {
+        transform: translateY(-3px) scale(1.02);
+        border-color: rgba(112, 216, 229, .5);
+        background: rgba(27, 62, 76, .8);
+    }
+
+    .feature-chip-index {
+        display: inline-grid;
+        width: 1.3rem;
+        height: 1.3rem;
+        place-items: center;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6386e8, #70d8e5);
+        color: #07111e;
+        font-size: .64rem;
+        font-weight: 800;
+    }
+
     h1, h2, h3 {
         color: #edf6ff !important;
         letter-spacing: -.025em;
@@ -1035,7 +1084,16 @@ with tabs[2]:
         st.write("时间切分")
         st.json(model_result.split_dates)
         st.write("模型特征")
-        st.code(", ".join(FEATURE_LABELS.get(name, name) for name in model_result.feature_columns))
+        feature_chips = "".join(
+            f'<span class="feature-chip" style="animation-delay:{index * 55}ms">'
+            f'<span class="feature-chip-index">{index + 1:02d}</span>'
+            f'{escape(FEATURE_LABELS.get(name, name))}</span>'
+            for index, name in enumerate(model_result.feature_columns)
+        )
+        st.markdown(
+            f'<div class="feature-cloud">{feature_chips}</div>',
+            unsafe_allow_html=True,
+        )
     st.markdown(
         f"主模型：**{model_result.primary_name}** · "
         f"测试集灵敏度：**{metric['sensitivity_recall']:.1%}** · "
