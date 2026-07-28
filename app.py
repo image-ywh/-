@@ -8,6 +8,8 @@ from src.data_loader import DEFAULT_DATA_PATH, load_dataset
 from src.features import build_ml_features
 from src.ml_selection import train_and_screen
 from src.plots import (
+    CATEGORY_TRANSLATIONS,
+    FEATURE_LABELS,
     bar_distribution,
     donut_distribution,
     feature_importance_figure,
@@ -22,6 +24,9 @@ from src.plots import (
 from src.single_stock import prepare_single_stock, simulate_gbm, summarize_single_stock
 
 
+MODEL_CACHE_VERSION = "screening-summary-v1"
+
+
 st.set_page_config(
     page_title="A股量化分析与机器学习选股平台",
     page_icon="📈",
@@ -32,30 +37,33 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
     :root {
-        --quant-bg: #030712;
-        --quant-panel: rgba(10, 20, 38, 0.76);
-        --quant-panel-strong: rgba(12, 25, 46, 0.92);
-        --quant-border: rgba(96, 165, 250, 0.16);
+        --quant-bg: #0a0608;
+        --quant-panel: rgba(12, 22, 38, 0.72);
+        --quant-panel-strong: rgba(15, 28, 46, 0.9);
+        --quant-border: rgba(160, 213, 226, 0.17);
         --quant-text: #e5eefc;
         --quant-muted: #8ea3bf;
-        --quant-cyan: #22d3ee;
-        --quant-blue: #3b82f6;
-        --quant-violet: #8b5cf6;
+        --quant-cyan: #70d8e5;
+        --quant-blue: #5b8ee8;
+        --quant-violet: #9b83d8;
     }
 
     html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"],
     [data-testid="stBottomBlockContainer"], .stApp {
-        background: #030712 !important;
+        background: var(--quant-bg) !important;
         color: var(--quant-text);
+        font-family: 'Inter', sans-serif;
     }
 
     [data-testid="stAppViewContainer"] {
         background:
-            radial-gradient(circle at 12% 8%, rgba(37, 99, 235, 0.17), transparent 28rem),
-            radial-gradient(circle at 91% 19%, rgba(139, 92, 246, 0.14), transparent 24rem),
-            radial-gradient(circle at 55% 76%, rgba(6, 182, 212, 0.07), transparent 34rem),
-            linear-gradient(160deg, #030712 0%, #06101f 48%, #02050b 100%) !important;
+            radial-gradient(circle at 8% 2%, rgba(117, 75, 101, 0.2), transparent 28rem),
+            radial-gradient(circle at 92% 15%, rgba(48, 136, 161, 0.2), transparent 28rem),
+            radial-gradient(circle at 50% 80%, rgba(30, 93, 128, 0.13), transparent 34rem),
+            linear-gradient(160deg, #0a0608 0%, #071421 48%, #04111a 100%) !important;
         background-attachment: fixed !important;
     }
 
@@ -88,7 +96,7 @@ st.markdown(
 
     [data-testid="stSidebar"] {
         background:
-            linear-gradient(180deg, rgba(9, 18, 35, .98), rgba(3, 7, 18, .98)) !important;
+            linear-gradient(180deg, rgba(16, 10, 19, .98), rgba(4, 14, 24, .98)) !important;
         border-right: 1px solid var(--quant-border);
     }
 
@@ -104,7 +112,9 @@ st.markdown(
     .sidebar-brand strong {
         display: block;
         color: #f8fbff;
-        font-size: 1.28rem;
+        font-family: 'Dancing Script', cursive !important;
+        font-size: 1.72rem;
+        font-weight: 600;
         letter-spacing: -.02em;
     }
 
@@ -119,29 +129,60 @@ st.markdown(
     .quant-hero {
         position: relative;
         overflow: hidden;
-        padding: 2.35rem 2.5rem 2.15rem;
+        display: flex;
+        min-height: min(64vh, 680px);
+        flex-direction: column;
+        justify-content: center;
+        padding: 4.3rem 5.5rem 4rem;
         margin: .3rem 0 1.25rem;
-        border: 1px solid rgba(96, 165, 250, .2);
-        border-radius: 26px;
+        border: 1px solid rgba(196, 232, 237, .18);
+        border-radius: 32px;
         background:
-            linear-gradient(135deg, rgba(15, 33, 61, .93), rgba(7, 16, 31, .82)),
-            radial-gradient(circle at 80% 20%, rgba(34, 211, 238, .2), transparent 35%);
+            linear-gradient(135deg, rgba(25, 12, 24, .92), rgba(8, 25, 39, .8) 55%, rgba(10, 55, 67, .72)),
+            radial-gradient(circle at 80% 20%, rgba(112, 216, 229, .2), transparent 35%);
         box-shadow:
-            0 30px 80px rgba(0, 0, 0, .36),
+            0 35px 100px rgba(0, 0, 0, .43),
             inset 0 1px rgba(255, 255, 255, .06);
         animation: quantFadeUp .75s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .quant-hero::before {
+        content: "";
+        position: absolute;
+        width: 60%;
+        height: 130%;
+        left: 42%;
+        top: -32%;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(255, 196, 181, .13), rgba(66, 193, 205, .16), transparent 65%);
+        filter: blur(30px);
+        transform: rotate(-22deg);
+        animation: quantAurora 13s ease-in-out infinite alternate;
+        pointer-events: none;
     }
 
     .quant-hero::after {
         content: "";
         position: absolute;
-        width: 340px;
-        height: 340px;
-        top: -210px;
-        right: -80px;
+        width: 430px;
+        height: 430px;
+        top: -250px;
+        right: -120px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(59, 130, 246, .34), transparent 68%);
-        animation: quantFloat 7s ease-in-out infinite;
+        background: radial-gradient(circle, rgba(91, 142, 232, .32), transparent 68%);
+        animation: quantFloat 9s ease-in-out infinite;
+        pointer-events: none;
+    }
+
+    .hero-brand {
+        position: relative;
+        z-index: 1;
+        margin-bottom: .45rem;
+        color: rgba(255, 244, 237, .95);
+        font-family: 'Dancing Script', cursive !important;
+        font-size: clamp(1.7rem, 3vw, 2.5rem);
+        font-weight: 600;
+        letter-spacing: .01em;
     }
 
     .hero-kicker {
@@ -167,13 +208,16 @@ st.markdown(
     .hero-title {
         position: relative;
         z-index: 1;
-        margin: .72rem 0 .42rem;
+        max-width: 980px;
+        margin: .72rem 0 .62rem;
         color: #f8fbff;
-        font-size: clamp(2.1rem, 4vw, 3.75rem);
-        font-weight: 820;
-        line-height: 1.08;
-        letter-spacing: -.055em;
-        background: linear-gradient(100deg, #ffffff 6%, #bfdbfe 52%, #67e8f9 100%);
+        font-family: 'Instrument Serif', Georgia, serif !important;
+        font-size: clamp(3.25rem, 7.4vw, 7.2rem);
+        font-weight: 400;
+        line-height: .93;
+        letter-spacing: -.045em;
+        text-shadow: 0 0 40px rgba(255, 255, 255, .25), 0 0 90px rgba(112, 216, 229, .12);
+        background: linear-gradient(100deg, #fff8f4 4%, #d9e6f2 53%, #8ce4e8 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
@@ -183,9 +227,22 @@ st.markdown(
         z-index: 1;
         max-width: 760px;
         margin: 0;
-        color: #9fb2ca;
-        font-size: 1rem;
-        line-height: 1.75;
+        color: rgba(227, 238, 245, .72);
+        font-size: 1.02rem;
+        font-weight: 300;
+        line-height: 1.8;
+    }
+
+    .hero-quote {
+        position: relative;
+        z-index: 1;
+        max-width: 700px;
+        margin: 1.1rem 0 0;
+        color: rgba(255, 241, 234, .82);
+        font-family: 'Instrument Serif', Georgia, serif !important;
+        font-size: clamp(1.15rem, 2vw, 1.55rem);
+        font-style: italic;
+        line-height: 1.25;
     }
 
     .hero-pills {
@@ -205,12 +262,60 @@ st.markdown(
         color: #b9cce2;
         font-size: .78rem;
         backdrop-filter: blur(10px);
+        box-shadow: inset 0 1px rgba(255, 255, 255, .08);
+        transition: transform .3s ease, background .3s ease, border-color .3s ease;
+    }
+
+    .hero-pills span:hover {
+        transform: translateY(-3px);
+        border-color: rgba(176, 229, 232, .34);
+        background: rgba(28, 61, 74, .65);
     }
 
     .hero-pills b {
         color: #f0f8ff;
         font-weight: 700;
     }
+
+    .hero-sound {
+        position: absolute;
+        z-index: 1;
+        right: 2.4rem;
+        bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        color: rgba(227, 238, 245, .55);
+        font-size: .62rem;
+        font-weight: 600;
+        letter-spacing: .14em;
+        line-height: 1.45;
+        text-transform: uppercase;
+    }
+
+    .hero-sound-bars {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        height: 30px;
+        padding: 0 .6rem;
+        border: 1px solid rgba(255, 255, 255, .22);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .03);
+    }
+
+    .hero-sound-bars i {
+        display: block;
+        width: 2px;
+        border-radius: 999px;
+        background: #9be4e7;
+        animation: soundBeat 1.35s ease-in-out infinite alternate;
+    }
+
+    .hero-sound-bars i:nth-child(1) { height: 8px; animation-delay: -.2s; }
+    .hero-sound-bars i:nth-child(2) { height: 16px; animation-delay: -.45s; }
+    .hero-sound-bars i:nth-child(3) { height: 11px; animation-delay: -.75s; }
+    .hero-sound-bars i:nth-child(4) { height: 20px; animation-delay: -.95s; }
 
     [data-testid="stMetric"] {
         position: relative;
@@ -310,6 +415,235 @@ st.markdown(
         box-shadow: 0 18px 48px rgba(0, 0, 0, .28);
     }
 
+    .result-analysis {
+        position: relative;
+        overflow: hidden;
+        margin: 1.35rem 0 .4rem;
+        padding: 1.45rem;
+        border: 1px solid rgba(45, 212, 191, .2);
+        border-radius: 20px;
+        background:
+            linear-gradient(145deg, rgba(9, 31, 48, .91), rgba(8, 18, 34, .9)),
+            radial-gradient(circle at 100% 0, rgba(34, 211, 238, .16), transparent 38%);
+        box-shadow: 0 16px 42px rgba(0, 0, 0, .24), inset 0 1px rgba(255, 255, 255, .04);
+        animation: quantFadeUp .68s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .result-analysis::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 8%;
+        right: 8%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(103, 232, 249, .72), transparent);
+    }
+
+    .analysis-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.1rem;
+    }
+
+    .analysis-eyebrow {
+        display: block;
+        color: #5eead4;
+        font-size: .7rem;
+        font-weight: 760;
+        letter-spacing: .15em;
+    }
+
+    .analysis-header h4 {
+        margin: .26rem 0 0;
+        color: #f0f9ff;
+        font-size: 1.24rem;
+    }
+
+    .analysis-badge {
+        flex: 0 0 auto;
+        padding: .42rem .72rem;
+        border: 1px solid rgba(94, 234, 212, .22);
+        border-radius: 999px;
+        color: #a7f3d0;
+        background: rgba(13, 148, 136, .12);
+        font-size: .76rem;
+        font-weight: 700;
+    }
+
+    .analysis-badge.cautious {
+        color: #fde68a;
+        border-color: rgba(251, 191, 36, .22);
+        background: rgba(217, 119, 6, .12);
+    }
+
+    .analysis-badge.weak {
+        color: #fecdd3;
+        border-color: rgba(251, 113, 133, .24);
+        background: rgba(225, 29, 72, .12);
+    }
+
+    .analysis-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .75rem;
+    }
+
+    .analysis-item {
+        padding: .9rem 1rem;
+        border: 1px solid rgba(125, 211, 252, .1);
+        border-radius: 14px;
+        background: rgba(4, 14, 28, .56);
+        transition: transform .22s ease, border-color .22s ease;
+    }
+
+    .analysis-item:hover {
+        transform: translateY(-2px);
+        border-color: rgba(45, 212, 191, .28);
+    }
+
+    .analysis-item span,
+    .analysis-item small {
+        display: block;
+        color: #8298b2;
+        font-size: .74rem;
+    }
+
+    .analysis-item strong {
+        display: block;
+        margin: .22rem 0 .18rem;
+        color: #f0f9ff;
+        font-size: 1.22rem;
+    }
+
+    .analysis-narrative {
+        margin: 1rem .1rem .75rem !important;
+        color: #b9c9dc !important;
+        font-size: .9rem;
+        line-height: 1.75;
+    }
+
+    .risk-note {
+        padding: .76rem .9rem;
+        border-left: 3px solid #fb7185;
+        border-radius: 0 10px 10px 0;
+        background: rgba(136, 19, 55, .1);
+        color: #d4b6c1;
+        font-size: .78rem;
+        line-height: 1.6;
+    }
+
+    .screening-console {
+        margin: .75rem 0 1.35rem;
+        padding: 1.3rem;
+        border: 1px solid rgba(96, 165, 250, .18);
+        border-radius: 20px;
+        background:
+            linear-gradient(145deg, rgba(10, 25, 46, .9), rgba(6, 16, 31, .9)),
+            radial-gradient(circle at 0 0, rgba(37, 99, 235, .14), transparent 34%);
+        box-shadow: 0 16px 42px rgba(0, 0, 0, .22);
+        animation: quantFadeUp .65s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .screening-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .screening-head h4 {
+        margin: .22rem 0 0;
+        color: #f0f7ff;
+        font-size: 1.2rem;
+    }
+
+    .screening-date {
+        padding: .38rem .66rem;
+        border: 1px solid rgba(125, 211, 252, .14);
+        border-radius: 999px;
+        color: #9fb5ce;
+        background: rgba(5, 15, 29, .55);
+        font-size: .74rem;
+    }
+
+    .screening-flow {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .65rem;
+    }
+
+    .screening-step {
+        position: relative;
+        min-height: 104px;
+        padding: .82rem .9rem;
+        border: 1px solid rgba(125, 211, 252, .1);
+        border-radius: 13px;
+        background: rgba(3, 12, 25, .58);
+    }
+
+    .screening-step:not(:last-child)::after {
+        content: "›";
+        position: absolute;
+        top: 34%;
+        right: -.52rem;
+        z-index: 2;
+        color: #38bdf8;
+        font-size: 1.15rem;
+        font-weight: 800;
+    }
+
+    .screening-step span,
+    .screening-step small {
+        display: block;
+        color: #8197b1;
+        font-size: .71rem;
+        line-height: 1.5;
+    }
+
+    .screening-step b {
+        display: block;
+        margin: .18rem 0;
+        color: #edf7ff;
+        font-size: 1.38rem;
+    }
+
+    .screening-step.final {
+        border-color: rgba(52, 211, 153, .25);
+        background: rgba(6, 78, 59, .11);
+    }
+
+    .screening-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .65rem;
+        margin-top: .8rem;
+    }
+
+    .screening-summary div {
+        padding: .72rem .88rem;
+        border-radius: 11px;
+        background: rgba(15, 31, 51, .7);
+        color: #8fa4bc;
+        font-size: .74rem;
+    }
+
+    .screening-summary strong {
+        display: block;
+        margin-top: .16rem;
+        color: #dffaf4;
+        font-size: 1rem;
+    }
+
+    .screening-rule {
+        margin: .8rem .05rem 0 !important;
+        color: #8ea3bc !important;
+        font-size: .76rem;
+        line-height: 1.65;
+    }
+
     h1, h2, h3 {
         color: #edf6ff !important;
         letter-spacing: -.025em;
@@ -378,11 +712,28 @@ st.markdown(
         50% { transform: translate3d(-18px, 16px, 0); }
     }
 
+    @keyframes quantAurora {
+        0% { transform: translate3d(-5%, 2%, 0) rotate(-22deg) scale(1); opacity: .64; }
+        100% { transform: translate3d(11%, -4%, 0) rotate(-14deg) scale(1.12); opacity: .95; }
+    }
+
+    @keyframes soundBeat {
+        0% { transform: scaleY(.6); opacity: .55; }
+        100% { transform: scaleY(1.15); opacity: 1; }
+    }
+
     @media (max-width: 820px) {
         [data-testid="stMainBlockContainer"] { padding: 1.2rem 1rem 3rem; }
-        .quant-hero { padding: 1.65rem 1.35rem; border-radius: 20px; }
+        .quant-hero { min-height: 58vh; padding: 2.6rem 1.35rem 3.4rem; border-radius: 22px; }
+        .hero-title { font-size: clamp(3rem, 14vw, 5rem); }
         .hero-pills { gap: .45rem; }
+        .hero-sound { right: 1.4rem; bottom: 1.35rem; }
         .stTabs [data-baseweb="tab"] { padding: 0 .7rem; }
+        .analysis-grid { grid-template-columns: 1fr; }
+        .analysis-header { align-items: center; }
+        .screening-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .screening-step:nth-child(2)::after { display: none; }
+        .screening-summary { grid-template-columns: 1fr; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -410,7 +761,8 @@ def get_features(data_path: str):
 
 
 @st.cache_resource(show_spinner=False)
-def get_model(data_path: str, threshold: float):
+def get_model(data_path: str, threshold: float, cache_version: str):
+    del cache_version
     return train_and_screen(get_features(data_path), threshold=threshold)
 
 
@@ -447,6 +799,7 @@ simulation = simulate_gbm(single, n_paths=simulation_paths)
 st.markdown(
     f"""
     <section class="quant-hero">
+        <div class="hero-brand">Serene Quant</div>
         <div class="hero-kicker">
             <span class="status-dot"></span>
             QUANT INTELLIGENCE CONSOLE
@@ -455,11 +808,16 @@ st.markdown(
         <p class="hero-subtitle">
             从历史行情、风险模拟到机器学习选股，以一套可交互的分析流程洞察市场信号。
         </p>
+        <p class="hero-quote">“让数据保持克制，让判断更接近真实。”</p>
         <div class="hero-pills">
             <span>数据区间 <b>2021-01-04 — 2026-07-24</b></span>
             <span>覆盖股票 <b>{bundle.stock_info["Ticker"].nunique()} 只</b></span>
             <span>有效行情 <b>{len(bundle.daily_prices):,} 条</b></span>
             <span>当前标的 <b>{ticker}</b></span>
+        </div>
+        <div class="hero-sound">
+            <span class="hero-sound-bars"><i></i><i></i><i></i><i></i></span>
+            <span>Market<br>in motion</span>
         </div>
     </section>
     """,
@@ -510,6 +868,73 @@ with tabs[0]:
     mc_metrics[2].metric("99% VaR金额", f"{simulation.var_amount_99:.2f}")
     mc_metrics[3].metric("终值高于当前价概率", f"{simulation.upside_probability:.1%}")
 
+    expected_return = (
+        simulation.expected_terminal_price / simulation.current_price - 1
+    )
+    if expected_return >= 0.05 and simulation.upside_probability >= 0.55:
+        outlook_label = "预期偏正向"
+        outlook_class = ""
+        outlook_text = (
+            "模拟终值的均值高于当前价格，且多数路径收于当前价之上，"
+            "模型分布整体呈现偏正向预期。"
+        )
+    elif expected_return >= 0:
+        outlook_label = "中性偏谨慎"
+        outlook_class = "cautious"
+        outlook_text = (
+            "模拟均值略高于当前价格，但上涨优势不强，"
+            "预期收益与价格波动之间仍需保持谨慎权衡。"
+        )
+    else:
+        outlook_label = "预期偏弱"
+        outlook_class = "weak"
+        outlook_text = (
+            "模拟终值的均值低于当前价格，模型分布反映出偏弱预期，"
+            "应重点关注价格继续下行的可能性。"
+        )
+
+    st.markdown(
+        f"""
+        <section class="result-analysis">
+            <div class="analysis-header">
+                <div>
+                    <span class="analysis-eyebrow">SIMULATION INSIGHT</span>
+                    <h4>模拟结果分析</h4>
+                </div>
+                <span class="analysis-badge {outlook_class}">{outlook_label}</span>
+            </div>
+            <div class="analysis-grid">
+                <div class="analysis-item">
+                    <span>一年后预期价格</span>
+                    <strong>{simulation.expected_terminal_price:.2f}</strong>
+                    <small>相对当前价预期收益 {expected_return:+.1%}</small>
+                </div>
+                <div class="analysis-item">
+                    <span>上涨路径占比</span>
+                    <strong>{simulation.upside_probability:.1%}</strong>
+                    <small>终值高于当前价的模拟概率</small>
+                </div>
+                <div class="analysis-item">
+                    <span>99%下行风险分位</span>
+                    <strong>{simulation.lower_1pct_price:.2f}</strong>
+                    <small>较当前价可能下跌 {simulation.var_pct_99:.1%}</small>
+                </div>
+            </div>
+            <p class="analysis-narrative">
+                基于 {simulation_paths:,} 条几何布朗运动模拟路径，{outlook_text}
+                在极端下行情景下，终值价格的下侧 1% 分位为
+                {simulation.lower_1pct_price:.2f}，对应每股较当前价格减少
+                {simulation.var_amount_99:.2f}。
+            </p>
+            <div class="risk-note">
+                风险提示：模拟结果依赖历史收益与波动率，并不代表确定预测；
+                99%风险分位表示约有1%的模拟终值可能低于该价格，实际市场风险可能更高。
+            </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
 with tabs[1]:
     st.subheader("股票行业、地区与市场分布")
     left, right = st.columns(2)
@@ -538,8 +963,71 @@ with tabs[1]:
 with tabs[2]:
     st.subheader("机器学习二分类模型与实盘筛选")
     with st.spinner("正在训练模型并生成候选股票清单..."):
-        model_result = get_model(str(data_path), probability_threshold)
+        model_result = get_model(
+            str(data_path),
+            probability_threshold,
+            MODEL_CACHE_VERSION,
+        )
     metric = model_result.metrics[model_result.primary_name]["test"]
+    screening = model_result.screening_summary
+    average_expected = screening["average_expected_5d_return"]
+    average_probability = screening["average_probability_up_5d"]
+    maximum_expected = screening["maximum_expected_5d_return"]
+    average_expected_text = (
+        f"{average_expected:.2%}" if average_expected is not None else "暂无"
+    )
+    average_probability_text = (
+        f"{average_probability:.1%}" if average_probability is not None else "暂无"
+    )
+    maximum_expected_text = (
+        f"{maximum_expected:.2%}" if maximum_expected is not None else "暂无"
+    )
+    st.markdown(
+        f"""
+        <section class="screening-console">
+            <div class="screening-head">
+                <div>
+                    <span class="analysis-eyebrow">LIVE SCREENING PIPELINE</span>
+                    <h4>实盘筛选逻辑</h4>
+                </div>
+                <span class="screening-date">筛选日期 {screening["selection_date"]}</span>
+            </div>
+            <div class="screening-flow">
+                <div class="screening-step">
+                    <span>STEP 01 · 最新可用行情</span>
+                    <b>{screening["stock_pool"]}</b>
+                    <small>进入当日筛选股票池</small>
+                </div>
+                <div class="screening-step">
+                    <span>STEP 02 · 模型概率达标</span>
+                    <b>{screening["probability_pass"]}</b>
+                    <small>上涨概率 ≥ {screening["probability_threshold"]:.0%}</small>
+                </div>
+                <div class="screening-step">
+                    <span>STEP 03 · 排除当日涨停</span>
+                    <b>{screening["limit_up_filtered"]}</b>
+                    <small>本次剔除的涨停标的数量</small>
+                </div>
+                <div class="screening-step final">
+                    <span>STEP 04 · 有效选股</span>
+                    <b>{screening["effective_candidates"]}</b>
+                    <small>输出可买入候选清单</small>
+                </div>
+            </div>
+            <div class="screening-summary">
+                <div>候选平均上涨概率<strong>{average_probability_text}</strong></div>
+                <div>候选平均预期5日收益<strong>{average_expected_text}</strong></div>
+                <div>最高预期5日收益<strong>{maximum_expected_text}</strong></div>
+            </div>
+            <p class="screening-rule">
+                过滤规则：主板日涨幅达到约 9.5%、创业板达到约 19.5%、
+                ST 标的达到约 4.5% 时标记为涨停并排除；阈值采用近似值，
+                用于处理价格四舍五入误差。
+            </p>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
     left, right = st.columns([1.2, 1])
     with left:
         st.plotly_chart(model_metrics_figure(metric), width="stretch")
@@ -547,22 +1035,51 @@ with tabs[2]:
         st.write("时间切分")
         st.json(model_result.split_dates)
         st.write("模型特征")
-        st.code(", ".join(model_result.feature_columns))
+        st.code(", ".join(FEATURE_LABELS.get(name, name) for name in model_result.feature_columns))
     st.markdown(
         f"主模型：**{model_result.primary_name}** · "
         f"测试集灵敏度：**{metric['sensitivity_recall']:.1%}** · "
-        f"候选数量：**{len(model_result.candidates)}**"
+        f"有效候选数量：**{len(model_result.candidates)}**"
+    )
+    candidate_display = model_result.candidates.copy()
+    candidate_display["交易状态"] = "可买入"
+    candidate_display["Market"] = candidate_display["Market"].replace(
+        {"Shanghai": "上海证券交易所", "Shenzhen": "深圳证券交易所"}
+    )
+    candidate_display["Board"] = candidate_display["Board"].replace(
+        {"Main Board": "主板", "ChiNext": "创业板"}
+    )
+    candidate_display["Industry"] = candidate_display["Industry"].replace(
+        CATEGORY_TRANSLATIONS["Industry"]
+    )
+    candidate_display = candidate_display.rename(
+        columns={
+            "Ticker": "股票代码",
+            "StockNameCN": "股票名称",
+            "Date": "筛选日期",
+            "Market": "交易所",
+            "Board": "板块",
+            "Industry": "行业",
+            "Close": "收盘价",
+            "ProbabilityUp5D": "未来5日上涨概率",
+            "Expected5DReturn": "预期5日收益",
+            "LimitUpFlagApprox": "涨停标记",
+        }
     )
     st.dataframe(
-        model_result.candidates.style.format(
-            {"ProbabilityUp5D": "{:.1%}", "Expected5DReturn": "{:.1%}", "Close": "{:.2f}"}
+        candidate_display.style.format(
+            {
+                "未来5日上涨概率": "{:.1%}",
+                "预期5日收益": "{:.1%}",
+                "收盘价": "{:.2f}",
+            }
         ),
         width="stretch",
         hide_index=True,
     )
     st.download_button(
         "下载候选股票清单",
-        data=model_result.candidates.to_csv(index=False).encode("utf-8-sig"),
+        data=candidate_display.to_csv(index=False).encode("utf-8-sig"),
         file_name="candidate_stocks.csv",
         mime="text/csv",
     )

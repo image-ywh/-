@@ -29,6 +29,7 @@ class ModelResult:
     split_dates: dict[str, str]
     feature_importance: pd.DataFrame
     candidates: pd.DataFrame
+    screening_summary: dict[str, int | float | str | None]
 
     @property
     def primary_model(self):
@@ -124,12 +125,37 @@ def train_and_screen(
         latest["ProbabilityUp5D"] * positive_mean
         + (1 - latest["ProbabilityUp5D"]) * negative_mean
     )
-    candidates = latest[
-        latest["PredictedUp5D"].eq(1) & latest["LimitUpFlagApprox"].eq(0)
+    probability_pass = latest[latest["PredictedUp5D"].eq(1)].copy()
+    limit_up_filtered = int(probability_pass["LimitUpFlagApprox"].eq(1).sum())
+    candidates = probability_pass[
+        probability_pass["LimitUpFlagApprox"].eq(0)
     ].copy()
     candidates = candidates.sort_values(
         ["ProbabilityUp5D", "Expected5DReturn"], ascending=False
     )
+    screening_summary = {
+        "selection_date": str(pd.Timestamp(latest["Date"].max()).date()),
+        "stock_pool": int(len(latest)),
+        "probability_pass": int(len(probability_pass)),
+        "limit_up_filtered": limit_up_filtered,
+        "effective_candidates": int(len(candidates)),
+        "average_probability_up_5d": (
+            float(candidates["ProbabilityUp5D"].mean())
+            if not candidates.empty
+            else None
+        ),
+        "average_expected_5d_return": (
+            float(candidates["Expected5DReturn"].mean())
+            if not candidates.empty
+            else None
+        ),
+        "maximum_expected_5d_return": (
+            float(candidates["Expected5DReturn"].max())
+            if not candidates.empty
+            else None
+        ),
+        "probability_threshold": float(threshold),
+    }
 
     return ModelResult(
         models=models,
@@ -142,6 +168,7 @@ def train_and_screen(
             "test_start": str(test["Date"].min().date()),
         },
         feature_importance=importance,
+        screening_summary=screening_summary,
         candidates=candidates[
             [
                 "Ticker",

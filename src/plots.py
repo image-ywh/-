@@ -5,6 +5,67 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
+CATEGORY_TRANSLATIONS = {
+    "Industry": {
+        "Automobiles": "汽车",
+        "Banking": "银行",
+        "Electrical Equipment / Batteries": "电力设备 / 电池",
+        "Electrical Equipment / Solar": "电力设备 / 光伏",
+        "Electronics": "电子",
+        "Food & Beverage": "食品饮料",
+        "Home Appliances": "家用电器",
+        "Non-bank Finance": "非银金融",
+        "Non-bank Finance / Financial IT": "非银金融 / 金融科技",
+        "Pharmaceuticals": "医药生物",
+        "Utilities": "公用事业",
+    },
+    "Region": {
+        "Beijing": "北京",
+        "Fujian": "福建",
+        "Guangdong": "广东",
+        "Guizhou": "贵州",
+        "Jiangsu": "江苏",
+        "Shaanxi": "陕西",
+        "Shanghai": "上海",
+        "Sichuan": "四川",
+        "Zhejiang": "浙江",
+    },
+    "Market": {
+        "Shanghai": "上海证券交易所",
+        "Shenzhen": "深圳证券交易所",
+    },
+    "Board": {
+        "Main Board": "主板",
+        "ChiNext": "创业板",
+    },
+}
+
+CATEGORY_LABELS = {
+    "Industry": "行业",
+    "Region": "地区",
+    "Market": "市场",
+    "Board": "板块",
+}
+
+FEATURE_LABELS = {
+    "IntradayReturn": "日内收益率",
+    "RangePct": "日内振幅",
+    "DailyReturn": "日收益率",
+    "VolumeChange": "成交量变化",
+    "Return5": "5日收益率",
+    "Return20": "20日收益率",
+    "MA20Gap": "价格偏离20日均线",
+    "Volatility20Annualized": "年化20日波动率",
+    "IsST": "ST标记",
+}
+
+
+def _localize_category(series: pd.Series, label: str) -> tuple[pd.Series, str]:
+    translations = CATEGORY_TRANSLATIONS.get(label, {})
+    localized = series.astype("string").replace(translations)
+    return localized, CATEGORY_LABELS.get(label, label)
+
+
 def _base(fig: go.Figure, height: int = 420) -> go.Figure:
     fig.update_layout(
         template="plotly_dark",
@@ -124,14 +185,48 @@ def monte_carlo_distribution_figure(
 
 
 def bar_distribution(series: pd.Series, title: str, label: str) -> go.Figure:
-    values = series.value_counts().rename_axis(label).reset_index(name="数量")
-    fig = px.bar(values, x=label, y="数量", title=title, text_auto=True)
+    localized, localized_label = _localize_category(series, label)
+    values = (
+        localized.value_counts()
+        .rename_axis(localized_label)
+        .reset_index(name="数量")
+    )
+    fig = px.bar(
+        values,
+        x=localized_label,
+        y="数量",
+        title=title,
+        text_auto=True,
+        labels={localized_label: localized_label, "数量": "股票数量"},
+    )
+    fig.update_traces(
+        hovertemplate=f"{localized_label}：%{{x}}<br>股票数量：%{{y}}<extra></extra>"
+    )
     return _base(fig, 360)
 
 
 def donut_distribution(series: pd.Series, title: str, label: str) -> go.Figure:
-    values = series.value_counts().rename_axis(label).reset_index(name="数量")
-    fig = px.pie(values, names=label, values="数量", hole=0.48, title=title)
+    localized, localized_label = _localize_category(series, label)
+    values = (
+        localized.value_counts()
+        .rename_axis(localized_label)
+        .reset_index(name="数量")
+    )
+    fig = px.pie(
+        values,
+        names=localized_label,
+        values="数量",
+        hole=0.48,
+        title=title,
+    )
+    fig.update_traces(
+        texttemplate="%{percent:.0%}",
+        hovertemplate=(
+            f"{localized_label}：%{{label}}<br>"
+            "股票数量：%{value}<br>占比：%{percent:.1%}<extra></extra>"
+        ),
+    )
+    fig.update_layout(legend_title_text=localized_label)
     return _base(fig, 360)
 
 
@@ -160,10 +255,11 @@ def model_metrics_figure(metrics: dict) -> go.Figure:
 
 def feature_importance_figure(importance: pd.DataFrame) -> go.Figure:
     data = importance.sort_values("Importance", ascending=True)
+    feature_labels = data["Feature"].map(FEATURE_LABELS).fillna(data["Feature"])
     fig = go.Figure(
         go.Bar(
             x=data["Importance"],
-            y=data["Feature"],
+            y=feature_labels,
             orientation="h",
             marker=dict(
                 color=data["Importance"],
