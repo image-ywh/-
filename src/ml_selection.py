@@ -10,10 +10,12 @@ from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
     f1_score,
+    make_scorer,
     precision_score,
     recall_score,
     roc_auc_score,
 )
+from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -51,10 +53,94 @@ def _metrics(model, x_test, y_test) -> dict:
     }
 
 
+def _baseline_random_forest(random_state: int) -> RandomForestClassifier:
+    """Build the pre-tuning random forest used for the baseline comparison."""
+    return RandomForestClassifier(
+        n_estimators=400,
+        max_depth=20,
+        min_samples_split=2,
+        min_samples_leaf=15,
+        max_features="sqrt",
+        class_weight=None,
+        criterion="gini",
+        n_jobs=-1,
+        random_state=random_state,
+    )
+
+
+def _specificity_score(y_true, y_pred) -> float:
+    """Measure the true-negative rate used to avoid one-class predictions."""
+    return float(recall_score(y_true, y_pred, pos_label=0, zero_division=0))
+
+
+_RF_SCORING = {
+    "accuracy": "accuracy",
+    "precision": make_scorer(precision_score, zero_division=0),
+    "recall": make_scorer(recall_score, zero_division=0),
+    "f1": make_scorer(f1_score, zero_division=0),
+    "roc_auc": "roc_auc",
+    "specificity": make_scorer(_specificity_score),
+}
+
+
+def _composite_refit(cv_results: dict) -> int:
+    """Select the CV candidate with the best geometric mean across metrics."""
+    metric_columns = [
+        cv_results[f"mean_test_{name}"] for name in _RF_SCORING
+    ]
+    metric_matrix = np.clip(np.vstack(metric_columns), 1e-6, 1.0)
+    composite_scores = np.exp(np.nanmean(np.log(metric_matrix), axis=0))
+    return int(np.nanargmax(composite_scores))
+
+
+def _random_forest_search(
+    random_state: int,
+    n_iter: int = 32,
+    cv_splits: int = 4,
+) -> RandomizedSearchCV:
+    """Create a reproducible overall-performance search over RF parameters."""
+    param_distributions = {
+        "n_estimators": [200, 300, 400, 500, 700, 900],
+        "max_depth": [None, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30],
+        "min_samples_split": [2, 4, 6, 10, 15, 20, 30, 40],
+        "min_samples_leaf": [1, 2, 4, 6, 8, 12, 15, 20, 30, 40, 60],
+        "max_features": ["sqrt", "log2", None, 0.33, 0.5, 0.75, 1.0],
+        "class_weight": [
+            None,
+            "balanced",
+            "balanced_subsample",
+            {0: 1.0, 1: 0.75},
+            {0: 1.0, 1: 0.9},
+            {0: 1.0, 1: 1.1},
+            {0: 1.0, 1: 1.25},
+            {0: 1.0, 1: 1.5},
+        ],
+    }
+    estimator = RandomForestClassifier(
+        criterion="gini",
+        n_jobs=-1,
+        random_state=random_state,
+    )
+    return RandomizedSearchCV(
+        estimator=estimator,
+        param_distributions=param_distributions,
+        n_iter=n_iter,
+        scoring=_RF_SCORING,
+        cv=TimeSeriesSplit(n_splits=cv_splits),
+        refit=_composite_refit,
+        random_state=random_state,
+        n_jobs=1,
+        verbose=0,
+        return_train_score=False,
+    )
+
+
 def train_and_screen(
     features: pd.DataFrame,
     threshold: float = 0.55,
     random_state: int = 42,
+    rf_search_iter: int = 32,
+    rf_cv_splits: int = 4,
 ) -> ModelResult:
     frame = training_frame(features)
     if frame.empty:
@@ -70,36 +156,92 @@ def train_and_screen(
     x_valid, y_valid = valid[MODEL_FEATURES], valid["LabelUp5D"].astype(int)
     x_test, y_test = test[MODEL_FEATURES], test["LabelUp5D"].astype(int)
 
-    models = {
-        "LogisticRegression": Pipeline(
-            [
-                ("scaler", StandardScaler()),
-                (
-                    "model",
-                    LogisticRegression(
-                        max_iter=1000, class_weight="balanced", random_state=random_state
-                    ),
+    logistic = Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            (
+                "model",
+                LogisticRegression(
+                    max_iter=1000, class_weight="balanced", random_state=random_state
                 ),
-            ]
-        ),
-        "RandomForest": RandomForestClassifier(
-            n_estimators=250,
-            max_depth=8,
-            min_samples_leaf=5,
-            class_weight="balanced",
-            n_jobs=-1,
-            random_state=random_state,
-        ),
+            ),
+        ]
+    )
+    baseline_rf = _baseline_random_forest(random_state)
+    logistic.fit(x_train, y_train)
+    baseline_rf.fit(x_train, y_train)
+
+    # The time split is already kept outside the search.  Within the training
+    # period, preserve chronological order for the expanding-window CV folds.
+    cv_train = train.sort_values(["Date", "Ticker"])
+    x_cv, y_cv = cv_train[MODEL_FEATURES], cv_train["LabelUp5D"].astype(int)
+    search = _random_forest_search(
+        random_state=random_state,
+        n_iter=rf_search_iter,
+        cv_splits=rf_cv_splits,
+    )
+    search.fit(x_cv, y_cv)
+    tuned_rf = search.best_estimator_
+
+    models = {
+        "LogisticRegression": logistic,
+        "RandomForestBaseline": baseline_rf,
+        "RandomForest": tuned_rf,
     }
-    metrics = {}
-    for name, model in models.items():
-        model.fit(x_train, y_train)
-        metrics[name] = {
-            "validation": _metrics(model, x_valid, y_valid),
-            "test": _metrics(model, x_test, y_test),
+    metrics = {
+        "LogisticRegression": {
+            "validation": _metrics(logistic, x_valid, y_valid),
+            "test": _metrics(logistic, x_test, y_test),
             "train_samples": int(len(train)),
             "validation_samples": int(len(valid)),
-        }
+        },
+        "RandomForestBaseline": {
+            "validation": _metrics(baseline_rf, x_valid, y_valid),
+            "test": _metrics(baseline_rf, x_test, y_test),
+            "train_samples": int(len(train)),
+            "validation_samples": int(len(valid)),
+        },
+        "RandomForest": {
+            "validation": _metrics(tuned_rf, x_valid, y_valid),
+            "test": _metrics(tuned_rf, x_test, y_test),
+            "train_samples": int(len(train)),
+            "validation_samples": int(len(valid)),
+            "tuning": {
+                "method": "RandomizedSearchCV",
+                "scoring": (
+                    "geometric_mean(accuracy, precision, recall, f1, "
+                    "roc_auc, specificity)"
+                ),
+                "cv": f"TimeSeriesSplit(n_splits={rf_cv_splits})",
+                "n_iter": int(rf_search_iter),
+                "best_cv_composite": float(
+                    np.exp(
+                        np.mean(
+                            np.log(
+                                np.clip(
+                                    [
+                                        search.cv_results_[f"mean_test_{name}"][
+                                            search.best_index_
+                                        ]
+                                        for name in _RF_SCORING
+                                    ],
+                                    1e-6,
+                                    1.0,
+                                )
+                            )
+                        )
+                    )
+                ),
+                "best_cv_metrics": {
+                    name: float(
+                        search.cv_results_[f"mean_test_{name}"][search.best_index_]
+                    )
+                    for name in _RF_SCORING
+                },
+                "best_params": search.best_params_,
+            },
+        },
+    }
 
     primary_name = "RandomForest"
     primary = models[primary_name]

@@ -34,7 +34,7 @@ from src.single_stock import prepare_single_stock, simulate_gbm, summarize_singl
 
 # Bump this whenever model code or hyperparameters change so Streamlit does
 # not reuse a model resource trained with an older implementation.
-MODEL_CACHE_VERSION = "screening-summary-v8-original-rf"
+MODEL_CACHE_VERSION = "screening-summary-v15-composite-search"
 
 
 st.set_page_config(
