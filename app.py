@@ -25,7 +25,9 @@ from src.plots import (
 from src.single_stock import prepare_single_stock, simulate_gbm, summarize_single_stock
 
 
-MODEL_CACHE_VERSION = "screening-summary-v1"
+# Bump this whenever model code or hyperparameters change so Streamlit does
+# not reuse a model resource trained with an older implementation.
+MODEL_CACHE_VERSION = "screening-summary-v8-original-rf"
 
 
 st.set_page_config(
@@ -125,6 +127,281 @@ st.markdown(
         color: var(--quant-muted);
         font-size: .82rem;
         line-height: 1.55;
+    }
+
+    /* Sidebar command deck: compact glass panel with a subtle data-grid texture. */
+    [data-testid="stSidebar"] {
+        position: relative;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at 18% 6%, rgba(91, 142, 232, .23), transparent 15rem),
+            radial-gradient(circle at 86% 72%, rgba(112, 216, 229, .11), transparent 18rem),
+            linear-gradient(180deg, rgba(10, 20, 42, .99), rgba(4, 12, 27, .99)) !important;
+        box-shadow: 18px 0 55px rgba(0, 0, 0, .18);
+    }
+
+    [data-testid="stSidebar"]::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: .34;
+        background-image:
+            linear-gradient(rgba(112, 216, 229, .055) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(112, 216, 229, .055) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: linear-gradient(to bottom, black 0%, transparent 78%);
+    }
+
+    [data-testid="stSidebar"] > div:first-child {
+        position: relative;
+        z-index: 1;
+    }
+
+    .sidebar-brand {
+        position: relative;
+        padding: .8rem .2rem 1.05rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid rgba(160, 213, 226, .15);
+    }
+
+    .sidebar-brand::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: -1px;
+        width: 62px;
+        height: 2px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #e45a84, #70d8e5);
+        box-shadow: 0 0 16px rgba(112, 216, 229, .35);
+    }
+
+    .sidebar-brand strong {
+        font-family: "STKaiti", "KaiTi", "FZKai-Z03", "Kaiti SC", serif !important;
+        font-size: 1.92rem;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-shadow: 0 0 24px rgba(140, 228, 232, .22);
+        filter: drop-shadow(0 2px 0 rgba(255, 255, 255, .05));
+    }
+
+    [data-testid="stSidebar"] .stSelectbox label,
+    [data-testid="stSidebar"] .stSlider label {
+        color: #d6e6f5 !important;
+        font-size: .77rem !important;
+        font-weight: 700 !important;
+        letter-spacing: .04em;
+    }
+
+    [data-testid="stSidebar"] [data-baseweb="select"] > div {
+        border: 1px solid rgba(112, 216, 229, .2) !important;
+        border-radius: 14px !important;
+        background: rgba(9, 27, 52, .76) !important;
+        box-shadow: inset 0 1px rgba(255, 255, 255, .05), 0 8px 24px rgba(0, 0, 0, .12);
+        transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+    }
+
+    [data-testid="stSidebar"] [data-baseweb="select"] > div:hover {
+        transform: translateY(-1px);
+        border-color: rgba(112, 216, 229, .54) !important;
+        box-shadow: 0 0 26px rgba(112, 216, 229, .11);
+    }
+
+    [data-testid="stSidebar"] [data-testid="stSlider"] {
+        padding: .7rem .78rem .82rem;
+        margin: .35rem 0 .9rem;
+        border: 1px solid rgba(125, 211, 252, .12);
+        border-radius: 15px;
+        background: rgba(9, 24, 42, .56);
+        box-shadow: inset 0 1px rgba(255, 255, 255, .035);
+    }
+
+    [data-testid="stSidebar"] [data-testid="stSlider"] [role="slider"] {
+        border: 2px solid #ffe7ef !important;
+        background: #e45a84 !important;
+        box-shadow: 0 0 0 5px rgba(228, 90, 132, .12), 0 0 22px rgba(228, 90, 132, .38);
+    }
+
+    [data-testid="stSidebar"] [data-testid="stSlider"] [data-baseweb="slider"] > div:first-child {
+        background: rgba(128, 161, 195, .28) !important;
+    }
+
+    [data-testid="stSidebar"] [data-testid="stSlider"] [data-testid="stTickBar"] {
+        color: #718aa8 !important;
+    }
+
+    .sidebar-footer {
+        margin-top: 2.1rem;
+        padding: 1rem;
+        border: 1px solid rgba(112, 216, 229, .16);
+        border-radius: 18px;
+        background: linear-gradient(145deg, rgba(14, 39, 62, .76), rgba(8, 20, 38, .68));
+        box-shadow: inset 0 1px rgba(255, 255, 255, .05), 0 14px 34px rgba(0, 0, 0, .18);
+    }
+
+    .sidebar-status {
+        display: flex;
+        align-items: center;
+        gap: .45rem;
+        color: #9cf3d1;
+        font-size: .64rem;
+        font-weight: 800;
+        letter-spacing: .14em;
+    }
+
+    .sidebar-status i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 0 0 rgba(52, 211, 153, .6);
+        animation: quantPulse 2s infinite;
+    }
+
+    .sidebar-mini-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .55rem;
+        margin-top: .8rem;
+    }
+
+    .sidebar-mini {
+        padding: .62rem .65rem;
+        border: 1px solid rgba(125, 211, 252, .1);
+        border-radius: 11px;
+        background: rgba(6, 18, 34, .55);
+    }
+
+    .sidebar-mini span,
+    .sidebar-footer p {
+        color: #8197b2 !important;
+        font-size: .67rem;
+        line-height: 1.55;
+    }
+
+    .sidebar-mini b {
+        display: block;
+        margin-top: .18rem;
+        color: #e8f5ff;
+        font-size: .92rem;
+    }
+
+    .sidebar-footer p {
+        margin: .75rem 0 0 !important;
+        font-size: .72rem;
+    }
+
+    /* Refined hero treatment: editorial typography, layered light and a quiet orbit. */
+    .quant-hero {
+        isolation: isolate;
+        border-color: rgba(196, 232, 237, .24);
+        background:
+            linear-gradient(135deg, rgba(27, 13, 28, .92), rgba(8, 27, 46, .84) 54%, rgba(9, 58, 70, .74)),
+            radial-gradient(circle at 12% 8%, rgba(255, 218, 203, .12), transparent 28%),
+            radial-gradient(circle at 84% 18%, rgba(112, 216, 229, .24), transparent 38%);
+        box-shadow:
+            0 35px 100px rgba(0, 0, 0, .46),
+            0 0 0 1px rgba(112, 216, 229, .04),
+            inset 0 1px rgba(255, 255, 255, .09);
+    }
+
+    .quant-hero::before {
+        width: 72%;
+        left: 34%;
+        opacity: .9;
+        filter: blur(34px);
+    }
+
+    .quant-hero::after {
+        width: 520px;
+        height: 520px;
+        top: -300px;
+        right: -150px;
+        background: radial-gradient(circle, rgba(91, 142, 232, .38), transparent 68%);
+    }
+
+    .hero-brand {
+        font-size: clamp(1.9rem, 3.1vw, 2.65rem);
+        text-shadow: 0 8px 28px rgba(255, 196, 181, .16);
+    }
+
+    .hero-kicker {
+        width: fit-content;
+        padding: .36rem .7rem;
+        border: 1px solid rgba(112, 216, 229, .18);
+        border-radius: 999px;
+        background: rgba(9, 34, 48, .42);
+        box-shadow: inset 0 1px rgba(255, 255, 255, .06);
+    }
+
+    .hero-title {
+        margin-top: .9rem;
+        font-family: "STKaiti", "KaiTi", "FZKai-Z03", "Kaiti SC", "Instrument Serif", serif !important;
+        font-size: clamp(3.45rem, 7.6vw, 7.35rem);
+        font-weight: 700;
+        letter-spacing: .01em;
+        line-height: 1.02;
+        text-shadow: 0 0 42px rgba(255, 255, 255, .2), 0 0 90px rgba(112, 216, 229, .16);
+    }
+
+    .hero-subtitle {
+        max-width: 790px;
+        font-size: 1.04rem;
+        letter-spacing: .02em;
+    }
+
+    .hero-pills span {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-pills span::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(110deg, transparent 25%, rgba(255,255,255,.14) 48%, transparent 70%);
+        transform: translateX(-120%);
+        transition: transform .7s ease;
+    }
+
+    .hero-pills span:hover::after {
+        transform: translateX(120%);
+    }
+
+    .hero-orbit {
+        position: absolute;
+        z-index: 0;
+        right: 9%;
+        top: 22%;
+        width: 190px;
+        height: 190px;
+        border: 1px solid rgba(140, 228, 232, .16);
+        border-radius: 50%;
+        transform: rotate(-24deg);
+        animation: heroOrbit 16s linear infinite;
+        pointer-events: none;
+    }
+
+    .hero-orbit::before,
+    .hero-orbit::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+    }
+
+    .hero-orbit::before {
+        inset: 23px;
+        border: 1px dashed rgba(255, 196, 181, .2);
+    }
+
+    .hero-orbit::after {
+        width: 7px;
+        height: 7px;
+        top: -3px;
+        left: 50%;
+        background: #8cecff;
+        box-shadow: 0 0 18px rgba(140, 236, 255, .8);
     }
 
     .quant-hero {
@@ -414,6 +691,48 @@ st.markdown(
     [data-testid="stDataFrame"]:hover {
         border-color: rgba(34, 211, 238, .27);
         box-shadow: 0 18px 48px rgba(0, 0, 0, .28);
+    }
+
+    .candidate-table-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .8rem;
+        margin: 1.15rem 0 .55rem;
+        color: #d9e9f8;
+        font-size: .78rem;
+        font-weight: 750;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .candidate-table-label span {
+        display: inline-flex;
+        align-items: center;
+        gap: .42rem;
+        color: #91a8c4;
+        font-size: .7rem;
+        font-weight: 600;
+        letter-spacing: .02em;
+        text-transform: none;
+    }
+
+    .candidate-table-label i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 12px rgba(52, 211, 153, .55);
+    }
+
+    [data-testid="stDataFrame"] {
+        background:
+            linear-gradient(145deg, rgba(12, 30, 51, .84), rgba(7, 16, 30, .84)),
+            radial-gradient(circle at 0 0, rgba(112, 216, 229, .08), transparent 30%);
+    }
+
+    [data-testid="stDataFrame"] .stDataFrameGlideDataEditor {
+        border-radius: 14px;
     }
 
     .result-analysis {
@@ -771,8 +1090,21 @@ st.markdown(
         100% { transform: scaleY(1.15); opacity: 1; }
     }
 
+    @keyframes heroOrbit {
+        from { transform: rotate(-24deg) translate3d(0, 0, 0); }
+        50% { transform: rotate(156deg) translate3d(0, -8px, 0); }
+        to { transform: rotate(336deg) translate3d(0, 0, 0); }
+    }
+
     @media (max-width: 820px) {
         [data-testid="stMainBlockContainer"] { padding: 1.2rem 1rem 3rem; }
+        .sidebar-brand strong {
+            white-space: nowrap;
+            font-size: 1.45rem;
+            letter-spacing: .03em;
+        }
+        .sidebar-brand span { font-size: .74rem; }
+        .hero-orbit { right: -5%; top: 18%; opacity: .7; transform: scale(.78); }
         .quant-hero { min-height: 58vh; padding: 2.6rem 1.35rem 3.4rem; border-radius: 22px; }
         .hero-title { font-size: clamp(3rem, 14vw, 5rem); }
         .hero-pills { gap: .45rem; }
@@ -838,6 +1170,19 @@ with st.sidebar:
     )
     simulation_paths = st.slider("蒙特卡洛路径数", 1000, 10000, 5000, step=1000)
     probability_threshold = st.slider("选股概率阈值", 0.50, 0.80, 0.55, step=0.01)
+    st.markdown(
+        f"""
+        <div class="sidebar-footer">
+            <div class="sidebar-status"><i></i> LIVE ANALYTICS</div>
+            <div class="sidebar-mini-grid">
+                <div class="sidebar-mini"><span>路径规模</span><b>{simulation_paths:,}</b></div>
+                <div class="sidebar-mini"><span>筛选阈值</span><b>{probability_threshold:.0%}</b></div>
+            </div>
+            <p>调整左侧参数，图表与模型结论会同步更新。</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 bundle = get_bundle(str(data_path))
 features = get_features(str(data_path))
@@ -848,6 +1193,7 @@ simulation = simulate_gbm(single, n_paths=simulation_paths)
 st.markdown(
     f"""
     <section class="quant-hero">
+        <div class="hero-orbit" aria-hidden="true"></div>
         <div class="hero-brand">Serene Quant</div>
         <div class="hero-kicker">
             <span class="status-dot"></span>
@@ -1124,20 +1470,46 @@ with tabs[2]:
             "LimitUpFlagApprox": "涨停标记",
         }
     )
+    download_candidates = candidate_display.copy()
+    table_display = candidate_display.copy()
+    table_display["未来5日上涨概率"] = table_display["未来5日上涨概率"] * 100
+    table_display["预期5日收益"] = table_display["预期5日收益"] * 100
+    st.markdown(
+        """
+        <div class="candidate-table-label">
+            <span><i></i>可买入候选清单</span>
+            <span>模型概率与预期收益</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.dataframe(
-        candidate_display.style.format(
+        table_display.style.format(
             {
-                "未来5日上涨概率": "{:.1%}",
-                "预期5日收益": "{:.1%}",
+                "未来5日上涨概率": "{:.1f}%",
+                "预期5日收益": "{:.1f}%",
                 "收盘价": "{:.2f}",
             }
         ),
         width="stretch",
         hide_index=True,
+        column_config={
+            "股票代码": st.column_config.TextColumn("股票代码", width="small"),
+            "股票名称": st.column_config.TextColumn("股票名称", width="small"),
+            "筛选日期": st.column_config.DatetimeColumn("筛选日期", format="YYYY-MM-DD"),
+            "收盘价": st.column_config.NumberColumn("收盘价", format="%.2f"),
+            "未来5日上涨概率": st.column_config.ProgressColumn(
+                "未来5日上涨概率",
+                min_value=0,
+                max_value=100,
+                format="%.1f%%",
+            ),
+            "预期5日收益": st.column_config.NumberColumn("预期5日收益", format="%.1f%%"),
+        },
     )
     st.download_button(
         "下载候选股票清单",
-        data=candidate_display.to_csv(index=False).encode("utf-8-sig"),
+        data=download_candidates.to_csv(index=False).encode("utf-8-sig"),
         file_name="candidate_stocks.csv",
         mime="text/csv",
     )

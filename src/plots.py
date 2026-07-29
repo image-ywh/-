@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -239,17 +241,35 @@ def model_metrics_figure(metrics: dict) -> go.Figure:
         "f1": "F1",
         "roc_auc": "ROC-AUC",
     }
+    values = [metrics[name] for name in names]
+    min_value = min(values)
+    max_value = max(values)
+    spread = max_value - min_value
+    padding = max(0.02, spread * 0.8)
+    lower_bound = max(0.0, math.floor((min_value - padding) * 100) / 100)
+    upper_bound = min(1.0, math.ceil((max_value + padding) * 100) / 100)
+
     fig = go.Figure(
         go.Bar(
             x=[labels[name] for name in names],
-            y=[metrics[name] for name in names],
-            text=[f"{metrics[name]:.1%}" for name in names],
-            textposition="auto",
+            y=values,
+            text=[f"{value:.1%}" for value in values],
+            textposition="outside",
+            cliponaxis=False,
             marker_color=["#38bdf8", "#2dd4bf", "#f59e0b", "#a78bfa", "#818cf8"],
+            hovertemplate="%{x}<br>指标值：%{y:.1%}<extra></extra>",
         )
     )
-    fig.update_yaxes(range=[0, 1], tickformat=".0%")
-    fig.update_layout(title="模型测试集评价指标")
+    fig.update_yaxes(
+        range=[lower_bound, upper_bound],
+        tickformat=".0%",
+        showgrid=True,
+        gridcolor="rgba(148, 163, 184, .14)",
+    )
+    fig.update_layout(
+        title="模型测试集评价指标",
+        margin=dict(t=58, r=22, b=58, l=62),
+    )
     return _base(fig, 380)
 
 
