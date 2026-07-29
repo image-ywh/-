@@ -4,9 +4,16 @@ from html import escape
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from src.data_loader import DEFAULT_DATA_PATH, load_dataset
 from src.features import build_ml_features
+from src.ai_assistant import (
+    ASSISTANT_NAME,
+    answer_query,
+    build_assistant_context,
+    risk_label,
+)
 from src.ml_selection import train_and_screen
 from src.plots import (
     CATEGORY_TRANSLATIONS,
@@ -402,6 +409,56 @@ st.markdown(
         left: 50%;
         background: #8cecff;
         box-shadow: 0 0 18px rgba(140, 236, 255, .8);
+    }
+
+    .hero-shooting-star {
+        position: absolute;
+        z-index: 1;
+        width: 150px;
+        height: 2px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, transparent 0%, rgba(140, 236, 255, .18) 36%, #d8fbff 80%, transparent 100%);
+        box-shadow: 0 0 12px rgba(140, 236, 255, .72);
+        opacity: 0;
+        transform: rotate(-35deg);
+        pointer-events: none;
+        animation: shootingStar 8.5s cubic-bezier(.25, .1, .2, 1) infinite;
+    }
+
+    .hero-shooting-star::after {
+        content: "";
+        position: absolute;
+        left: 13px;
+        top: 50%;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #efffff;
+        box-shadow: 0 0 14px 3px rgba(140, 236, 255, .78);
+        transform: translateY(-50%);
+    }
+
+    .hero-shooting-star.star-one {
+        top: 18%;
+        left: 72%;
+        animation-delay: -1.2s;
+    }
+
+    .hero-shooting-star.star-two {
+        top: 35%;
+        left: 82%;
+        width: 112px;
+        animation-delay: -5.1s;
+        animation-duration: 10.5s;
+    }
+
+    .hero-shooting-star.star-three {
+        top: 12%;
+        left: 49%;
+        width: 92px;
+        animation-delay: -7.4s;
+        animation-duration: 12s;
+        opacity: .7;
     }
 
     .quant-hero {
@@ -1096,6 +1153,24 @@ st.markdown(
         to { transform: rotate(336deg) translate3d(0, 0, 0); }
     }
 
+    @keyframes shootingStar {
+        0%, 58% {
+            opacity: 0;
+            transform: translate3d(210px, -130px, 0) rotate(-35deg) scaleX(.38);
+        }
+        63% {
+            opacity: .9;
+        }
+        72% {
+            opacity: 0;
+            transform: translate3d(-220px, 180px, 0) rotate(-35deg) scaleX(1);
+        }
+        100% {
+            opacity: 0;
+            transform: translate3d(-220px, 180px, 0) rotate(-35deg) scaleX(1);
+        }
+    }
+
     @media (max-width: 820px) {
         [data-testid="stMainBlockContainer"] { padding: 1.2rem 1rem 3rem; }
         .sidebar-brand strong {
@@ -1115,6 +1190,227 @@ st.markdown(
         .screening-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .screening-step:nth-child(2)::after { display: none; }
         .screening-summary { grid-template-columns: 1fr; }
+    }
+
+    /* Serene 小智: compact desktop-style floating assistant. */
+    [data-testid="stPopover"] {
+        position: fixed !important;
+        right: 1.4rem;
+        bottom: 1.35rem;
+        width: 4.2rem !important;
+        z-index: 1000;
+    }
+
+    [data-testid="stPopover"] [data-testid="stTooltipHoverTarget"] {
+        width: 4.2rem !important;
+        justify-content: center !important;
+    }
+
+    [data-testid="stPopoverButton"] {
+        width: 4.2rem !important;
+        height: 4.2rem !important;
+        padding: 0 !important;
+        border: 1px solid rgba(182, 247, 241, .72) !important;
+        border-radius: 999px !important;
+        color: #06222b !important;
+        background:
+            radial-gradient(circle at 32% 22%, #f5ffef 0%, #9cf3d1 24%, #70d8e5 58%, #6582e8 100%) !important;
+        box-shadow:
+            0 12px 34px rgba(0, 0, 0, .32),
+            0 0 0 7px rgba(112, 216, 229, .10),
+            0 0 30px rgba(112, 216, 229, .30) !important;
+        font-size: 1.55rem !important;
+        font-weight: 900 !important;
+        transition: transform .22s ease, box-shadow .22s ease !important;
+        cursor: grab !important;
+        touch-action: none;
+    }
+
+    [data-testid="stPopoverButton"]:hover {
+        transform: translateY(-3px) scale(1.04);
+        box-shadow:
+            0 16px 40px rgba(0, 0, 0, .38),
+            0 0 0 9px rgba(112, 216, 229, .14),
+            0 0 38px rgba(112, 216, 229, .42) !important;
+    }
+
+    [data-testid="stPopoverButton"].assistant-dragging {
+        cursor: grabbing !important;
+        transform: scale(1.03);
+        box-shadow:
+            0 18px 42px rgba(0, 0, 0, .42),
+            0 0 0 10px rgba(156, 243, 209, .16),
+            0 0 42px rgba(112, 216, 229, .44) !important;
+    }
+
+    [data-testid="stPopoverBody"] {
+        width: min(420px, calc(100vw - 2rem)) !important;
+        max-height: min(690px, calc(100vh - 7rem));
+        overflow-y: auto;
+        padding: 0 !important;
+        border: 1px solid rgba(170, 230, 235, .23) !important;
+        border-radius: 24px !important;
+        background:
+            linear-gradient(155deg, rgba(10, 30, 49, .97), rgba(7, 14, 29, .98)) !important;
+        box-shadow:
+            0 26px 80px rgba(0, 0, 0, .52),
+            inset 0 1px rgba(255, 255, 255, .08) !important;
+        backdrop-filter: blur(20px);
+    }
+
+    [data-testid="stPopoverBody"] > div > [data-testid="stVerticalBlock"] {
+        padding: 0 .9rem 1rem !important;
+    }
+
+    [data-testid="stPopoverBody"] [data-testid="stVerticalBlock"] {
+        gap: .6rem;
+    }
+
+    .assistant-popover-header {
+        position: relative;
+        overflow: hidden;
+        margin: -.1rem -.9rem .5rem;
+        padding: 1.1rem 1.15rem 1rem;
+        border-bottom: 1px solid rgba(170, 230, 235, .15);
+        background:
+            radial-gradient(circle at 88% 12%, rgba(112, 216, 229, .26), transparent 9rem),
+            linear-gradient(135deg, rgba(38, 24, 54, .72), rgba(7, 55, 67, .58));
+    }
+
+    .assistant-popover-header::after {
+        content: "";
+        position: absolute;
+        width: 130px;
+        height: 130px;
+        right: -42px;
+        bottom: -78px;
+        border: 1px solid rgba(156, 243, 209, .25);
+        border-radius: 50%;
+        box-shadow: 0 0 0 12px rgba(156, 243, 209, .06), 0 0 0 24px rgba(156, 243, 209, .035);
+    }
+
+    .assistant-popover-kicker {
+        display: flex;
+        align-items: center;
+        color: #9cf3d1;
+        font-size: .64rem;
+        font-weight: 800;
+        letter-spacing: .15em;
+    }
+
+    .assistant-popover-kicker::before {
+        content: "";
+        display: inline-block;
+        width: .42rem;
+        height: .42rem;
+        margin-right: .36rem;
+        border-radius: 50%;
+        background: #9cf3d1;
+        box-shadow: 0 0 0 4px rgba(156, 243, 209, .12), 0 0 14px rgba(156, 243, 209, .56);
+    }
+
+    .assistant-popover-kicker i {
+        display: inline-block;
+        width: .42rem;
+        height: .42rem;
+        margin-right: .36rem;
+        border-radius: 50%;
+        background: #9cf3d1;
+        box-shadow: 0 0 0 4px rgba(156, 243, 209, .12), 0 0 14px rgba(156, 243, 209, .56);
+        vertical-align: .04rem;
+    }
+
+    .assistant-popover-title {
+        margin-top: .28rem;
+        color: #f3fbff;
+        font-size: 1.3rem;
+        font-weight: 800;
+        letter-spacing: .02em;
+    }
+
+    .assistant-popover-subtitle {
+        margin-top: .22rem;
+        color: #9eb4cc;
+        font-size: .74rem;
+    }
+
+    [data-testid="stPopoverBody"] [data-testid="stMetric"] {
+        min-height: 0;
+        padding: .58rem .62rem;
+        border: 1px solid rgba(125, 211, 252, .12);
+        border-radius: 14px;
+        background: rgba(8, 24, 42, .62);
+    }
+
+    [data-testid="stPopoverBody"] [data-testid="stMetricLabel"] {
+        color: #8fa9c2 !important;
+        font-size: .64rem !important;
+    }
+
+    [data-testid="stPopoverBody"] [data-testid="stMetricValue"] {
+        color: #e9fbff !important;
+        font-size: 1.02rem !important;
+    }
+
+    .assistant-quick-title {
+        margin: .38rem 0 .02rem !important;
+        padding-top: .18rem;
+        color: #90a8c1;
+        font-size: .61rem;
+        font-weight: 700;
+        line-height: 1.25;
+        letter-spacing: .14em;
+    }
+
+    [data-testid="stPopoverBody"] [data-testid="stElementContainer"]:has(.assistant-quick-title) {
+        min-height: 1.55rem !important;
+        overflow: visible !important;
+    }
+
+    [data-testid="stPopoverBody"] [data-testid="stChatMessage"] {
+        margin: .12rem 0;
+        padding: .62rem .7rem;
+        border: 1px solid rgba(125, 211, 252, .10);
+        border-radius: 15px;
+        background: rgba(8, 22, 39, .60);
+    }
+
+    [data-testid="stPopoverBody"] [data-testid="stChatMessage"] p {
+        color: #d9e9f5;
+        font-size: .78rem;
+        line-height: 1.6;
+    }
+
+    [data-testid="stPopoverBody"] [data-testid="stTextInput"] input {
+        min-height: 2.6rem;
+        border: 1px solid rgba(112, 216, 229, .22) !important;
+        border-radius: 13px !important;
+        color: #ecfbff !important;
+        background: rgba(5, 17, 31, .72) !important;
+    }
+
+    [data-testid="stPopoverBody"] [data-testid="stButton"] button {
+        min-height: 2rem;
+        padding: .18rem .42rem !important;
+        border: 1px solid rgba(112, 216, 229, .17);
+        border-radius: 11px;
+        color: #d9f9f2;
+        background:
+            linear-gradient(135deg, rgba(35, 105, 224, .84), rgba(11, 151, 181, .86));
+        font-size: .70rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+    }
+
+    [data-testid="stPopoverBody"] [data-testid="stButton"] button:hover {
+        border-color: rgba(156, 243, 209, .54);
+        color: #ffffff;
+        background: rgba(23, 77, 84, .75);
+    }
+
+    [data-testid="stPopoverBody"] [data-testid="stButton"] button:focus:not(:active) {
+        border-color: rgba(112, 216, 229, .28);
+        box-shadow: 0 0 0 2px rgba(112, 216, 229, .12);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1194,6 +1490,9 @@ st.markdown(
     f"""
     <section class="quant-hero">
         <div class="hero-orbit" aria-hidden="true"></div>
+        <div class="hero-shooting-star star-one" aria-hidden="true"></div>
+        <div class="hero-shooting-star star-two" aria-hidden="true"></div>
+        <div class="hero-shooting-star star-three" aria-hidden="true"></div>
         <div class="hero-brand">Serene Quant</div>
         <div class="hero-kicker">
             <span class="status-dot"></span>
@@ -1518,6 +1817,260 @@ with tabs[2]:
         feature_importance_figure(model_result.feature_importance),
         width="stretch",
     )
+
+_LEGACY_INLINE_ASSISTANT = r"""
+Legacy inline assistant layout retained as a comment so the floating popover
+below is the only visible assistant surface.
+st.divider()
+st.subheader(f"{ASSISTANT_NAME} · AI 股票分析助手")
+st.caption(
+    "助手只使用当前项目中的历史行情、蒙特卡洛模拟和随机森林结果，"
+    "不调用实时新闻，也不构成投资建议。"
+)
+
+assistant_context = build_assistant_context(
+    ticker=ticker,
+    single=single,
+    single_summary=single_summary,
+    simulation=simulation,
+    features=features,
+    model_result=model_result,
+)
+
+assistant_metrics = st.columns(4)
+assistant_metrics[0].metric("当前标的", assistant_context.ticker)
+assistant_metrics[1].metric("最新收盘价", f"{assistant_context.latest_close:.2f}")
+assistant_metrics[2].metric("模型上涨概率", (
+    f"{assistant_context.probability_up_5d:.1%}"
+    if assistant_context.probability_up_5d is not None
+    else "暂无"
+))
+assistant_metrics[3].metric("风险等级", risk_label(
+    assistant_context.annualized_volatility,
+    assistant_context.max_drawdown,
+))
+
+if st.session_state.get("stock_assistant_ticker") != ticker:
+    st.session_state.stock_assistant_ticker = ticker
+    st.session_state.stock_assistant_messages = []
+
+if not st.session_state.stock_assistant_messages:
+    st.session_state.stock_assistant_messages = [
+        {
+            "role": "assistant",
+            "content": (
+                f"你好，我是 {ASSISTANT_NAME}，正在为你分析 {assistant_context.stock_name}。"
+                "你可以问我当前趋势、风险、随机森林概率或候选股票池。"
+            ),
+        }
+    ]
+
+for message in st.session_state.stock_assistant_messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+assistant_prompt = st.chat_input(
+    "例如：请分析当前股票风险，或解释随机森林的预测结果",
+    key="stock_assistant_prompt",
+)
+if assistant_prompt:
+    st.session_state.stock_assistant_messages.append(
+        {"role": "user", "content": assistant_prompt}
+    )
+    assistant_reply = answer_query(assistant_prompt, assistant_context)
+    st.session_state.stock_assistant_messages.append(
+        {"role": "assistant", "content": assistant_reply}
+    )
+    st.rerun()
+
+"""
+
+assistant_context = build_assistant_context(
+    ticker=ticker,
+    single=single,
+    single_summary=single_summary,
+    simulation=simulation,
+    features=features,
+    model_result=model_result,
+)
+
+if st.session_state.get("stock_assistant_ticker") != ticker:
+    st.session_state.stock_assistant_ticker = ticker
+    st.session_state.stock_assistant_messages = []
+
+if not st.session_state.stock_assistant_messages:
+    st.session_state.stock_assistant_messages = [
+        {
+            "role": "assistant",
+            "content": (
+                f"你好，我是 {ASSISTANT_NAME}，正在为你分析 {assistant_context.stock_name}。"
+                "你可以问我当前趋势、风险、随机森林概率或候选股票池。"
+            ),
+        }
+    ]
+
+with st.popover("✦", help=f"打开 {ASSISTANT_NAME}", use_container_width=False):
+    st.markdown(
+        f"""
+        <div class="assistant-popover-header">
+            <div class="assistant-popover-kicker">QUANT COMPANION · LIVE</div>
+            <div class="assistant-popover-title">{ASSISTANT_NAME}</div>
+            <div class="assistant-popover-subtitle">
+                {assistant_context.stock_name} · {assistant_context.ticker} · 数据截至 {assistant_context.latest_date}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    assistant_metrics = st.columns(2)
+    assistant_metrics[0].metric("最新收盘", f"{assistant_context.latest_close:.2f}")
+    assistant_metrics[1].metric(
+        "上涨概率",
+        (
+            f"{assistant_context.probability_up_5d:.1%}"
+            if assistant_context.probability_up_5d is not None
+            else "暂无"
+        ),
+    )
+    st.markdown('<div class="assistant-quick-title">QUICK PROMPTS</div>', unsafe_allow_html=True)
+    quick_columns = st.columns(2)
+    quick_questions = [
+        ("风险扫描", "请分析当前股票风险"),
+        ("模型解读", "随机森林预测结果如何？"),
+        ("趋势概览", "请分析当前股票走势"),
+        ("候选股票", "当前股票池有哪些候选股票？"),
+    ]
+    for column, (label, question) in zip(quick_columns * 2, quick_questions):
+        if column.button(label, key=f"assistant_quick_{label}", use_container_width=True):
+            st.session_state.stock_assistant_messages.append(
+                {"role": "user", "content": question}
+            )
+            st.session_state.stock_assistant_messages.append(
+                {"role": "assistant", "content": answer_query(question, assistant_context)}
+            )
+            st.rerun()
+
+    for message in st.session_state.stock_assistant_messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    with st.form("stock_assistant_form", clear_on_submit=True):
+        assistant_prompt = st.text_input(
+            "向助手提问",
+            placeholder="例如：这只股票的风险如何？",
+            label_visibility="collapsed",
+        )
+        assistant_submitted = st.form_submit_button("发送", use_container_width=True)
+    if assistant_submitted and assistant_prompt.strip():
+        st.session_state.stock_assistant_messages.append(
+            {"role": "user", "content": assistant_prompt.strip()}
+        )
+        st.session_state.stock_assistant_messages.append(
+            {"role": "assistant", "content": answer_query(assistant_prompt, assistant_context)}
+        )
+        st.rerun()
+
+components.html(
+    """
+    <script>
+    (() => {
+      const STORAGE_KEY = "serene-quant-assistant-position-v1";
+      const hostWindow = window.parent;
+      const hostDocument = hostWindow.document;
+      let dragState = null;
+      let suppressClick = false;
+
+      const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+      const applySavedPosition = (shell) => {
+        try {
+          const saved = JSON.parse(hostWindow.localStorage.getItem(STORAGE_KEY) || "null");
+          if (!saved || !Number.isFinite(saved.left) || !Number.isFinite(saved.top)) return;
+          const maxLeft = Math.max(8, hostWindow.innerWidth - shell.offsetWidth - 8);
+          const maxTop = Math.max(8, hostWindow.innerHeight - shell.offsetHeight - 8);
+          shell.style.setProperty("left", `${clamp(saved.left, 8, maxLeft)}px`, "important");
+          shell.style.setProperty("top", `${clamp(saved.top, 8, maxTop)}px`, "important");
+          shell.style.setProperty("right", "auto", "important");
+          shell.style.setProperty("bottom", "auto", "important");
+        } catch (_) {}
+      };
+
+      const bind = () => {
+        const shell = hostDocument.querySelector('[data-testid="stPopover"]');
+        const button = hostDocument.querySelector('[data-testid="stPopoverButton"]');
+        if (!shell || !button) return;
+        applySavedPosition(shell);
+        if (button.dataset.dragBound === "true") return;
+        button.dataset.dragBound = "true";
+
+        button.addEventListener("pointerdown", (event) => {
+          if (event.button !== 0) return;
+          const rect = shell.getBoundingClientRect();
+          dragState = {
+            startX: event.clientX,
+            startY: event.clientY,
+            left: rect.left,
+            top: rect.top,
+            moved: false
+          };
+          button.setPointerCapture?.(event.pointerId);
+          event.preventDefault();
+        });
+
+        button.addEventListener("pointermove", (event) => {
+          if (!dragState) return;
+          const dx = event.clientX - dragState.startX;
+          const dy = event.clientY - dragState.startY;
+          if (Math.abs(dx) + Math.abs(dy) > 4) {
+            dragState.moved = true;
+            button.classList.add("assistant-dragging");
+            shell.style.setProperty("left", `${clamp(
+              dragState.left + dx, 8, hostWindow.innerWidth - shell.offsetWidth - 8
+            )}px`, "important");
+            shell.style.setProperty("top", `${clamp(
+              dragState.top + dy, 8, hostWindow.innerHeight - shell.offsetHeight - 8
+            )}px`, "important");
+            shell.style.setProperty("right", "auto", "important");
+            shell.style.setProperty("bottom", "auto", "important");
+          }
+        });
+
+        const finishDrag = () => {
+          if (!dragState) return;
+          const rect = shell.getBoundingClientRect();
+          if (dragState.moved) {
+            suppressClick = true;
+            hostWindow.setTimeout(() => { suppressClick = false; }, 220);
+            try {
+              hostWindow.localStorage.setItem(
+                STORAGE_KEY, JSON.stringify({left: rect.left, top: rect.top})
+              );
+            } catch (_) {}
+          }
+          dragState = null;
+          button.classList.remove("assistant-dragging");
+        };
+
+        button.addEventListener("pointerup", finishDrag);
+        button.addEventListener("pointercancel", finishDrag);
+        button.addEventListener("click", (event) => {
+          if (!suppressClick) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }, true);
+      };
+
+      new hostWindow.MutationObserver(bind).observe(hostDocument.body, {
+        childList: true,
+        subtree: true
+      });
+      bind();
+    })();
+    </script>
+    """,
+    height=0,
+    scrolling=False,
+)
 
 with tabs[3]:
     st.subheader("数据质量与来源")
