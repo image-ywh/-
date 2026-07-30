@@ -1,0 +1,4 @@
+﻿split,raw_rows,feature_available_rows,recent_listing_filtered_rows,daily_metadata_matched_rows,daily_metadata_coverage,known_ineligible_filtered_rows,abnormal_label_filtered_rows,quality_rows_including_unlabeled_live,labeled_rows,eligibility_fallback
+train,497147,497147,633,0,0.0,0,0,496514,475943,"Before local daily metadata coverage, use official CSI300 dynamic membership, at least 90 calendar days of official price history, and non-missing Alpha158 data."
+valid,136585,136585,3,136092,0.9963905260460519,16420,0,120162,117887,"Before local daily metadata coverage, use official CSI300 dynamic membership, at least 90 calendar days of official price history, and non-missing Alpha158 data."
+test,261300,261300,0,261300,1.0,16582,0,244718,242219,"Before local daily metadata coverage, use official CSI300 dynamic membership, at least 90 calendar days of official price history, and non-missing Alpha158 data."

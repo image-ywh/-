@@ -1,0 +1,64 @@
+{
+  "distribution": {
+    "sample_size": 15,
+    "industry_counts": {
+      "非银金融": 3,
+      "食品饮料": 2,
+      "银行": 2,
+      "电力设备": 2,
+      "家用电器": 2,
+      "公用事业": 1,
+      "电子": 1,
+      "汽车": 1,
+      "医药生物": 1
+    },
+    "region_counts": {
+      "广东": 7,
+      "贵州": 1,
+      "江苏": 1,
+      "北京": 1,
+      "陕西": 1,
+      "福建": 1,
+      "四川": 1,
+      "上海": 1,
+      "浙江": 1
+    },
+    "market_counts": {
+      "深市": 8,
+      "沪市": 7
+    },
+    "board_counts": {
+      "主板": 13,
+      "创业板": 2
+    }
+  },
+  "rank_ic": {
+    "rank_ic_days": 867,
+    "rank_ic_mean": 0.045305937172207635,
+    "rank_ic_std": 0.11526484865581675,
+    "rank_ic_positive_rate": 0.649365628604383,
+    "rank_ic_cumulative": 39.28024752830402
+  },
+  "backtest": {
+    "start_date": "2017-01-03",
+    "end_date": "2020-08-03",
+    "trading_days": 872,
+    "strategy_total_return": 0.925924150066018,
+    "benchmark_total_return": 0.4414475665896269,
+    "annual_return": 0.1958816894085917,
+    "benchmark_annual_return": 0.1049481211588068,
+    "excess_annual_return": 0.08169717268464,
+    "annual_volatility": 0.21277900576748315,
+    "sharpe_rf0": 0.9973268862412273,
+    "sortino_rf0": 1.4237201005453783,
+    "max_drawdown": -0.2055156767238549,
+    "calmar": 0.9531228591957582,
+    "information_ratio": 0.8764806298074141,
+    "beta": 0.9821856464177064,
+    "alpha_annual_rf0": 0.08963581578647146,
+    "daily_win_rate": 0.5389908256880734,
+    "profit_loss_ratio": 1.0194498401109897,
+    "rebalance_days": 175,
+    "mean_rebalance_turnover": 1.2256999488232934
+  }
+}

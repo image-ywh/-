@@ -1,0 +1,304 @@
+{
+  "status": "completed",
+  "dataset": "Qlib official China daily dataset",
+  "universe": "CSI300 historical dynamic constituents",
+  "historical_constituent_count": 690,
+  "price_adjustment": "official Qlib adjusted/normalized prices",
+  "feature_source": "qlib.contrib.data.loader.Alpha158DL",
+  "feature_count": 158,
+  "all_features_retained": true,
+  "all_missing_features": [
+    "VWAP0"
+  ],
+  "label_expression": "Ref($close, -5) / Ref($open, -1) - 1",
+  "label_definition": "1 if next trading-day open to fifth future trading-day close return is positive; otherwise 0",
+  "segments": {
+    "train": [
+      "2008-01-01",
+      "2014-12-31"
+    ],
+    "valid": [
+      "2015-01-01",
+      "2016-12-31"
+    ],
+    "test": [
+      "2017-01-01",
+      "2020-08-01"
+    ]
+  },
+  "rows": {
+    "train": 474493,
+    "valid": 116530,
+    "test_evaluation": 242219,
+    "test_all_predictions": 244718,
+    "latest_live": 294
+  },
+  "model": {
+    "type": "XGBoost binary classifier",
+    "parameters": {
+      "objective": "binary:logistic",
+      "eval_metric": [
+        "logloss",
+        "aucpr"
+      ],
+      "max_depth": 6,
+      "eta": 0.04,
+      "min_child_weight": 50.0,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "lambda": 12.0,
+      "alpha": 0.8,
+      "tree_method": "hist",
+      "max_bin": 256,
+      "nthread": 12,
+      "seed": 42
+    },
+    "best_iteration": 88,
+    "best_score": 0.5477711176053743
+  },
+  "threshold_selection": {
+    "threshold": 0.507399320602417,
+    "criterion": "maximum validation Youden J",
+    "youden_j": 0.05936940427525661,
+    "validation_sensitivity": 0.4381902683613466,
+    "validation_specificity": 0.62117913591391
+  },
+  "validation_metrics": {
+    "rows": 116530,
+    "positive_rate": 0.5151548957350038,
+    "predicted_positive_rate": 0.40940530335535913,
+    "accuracy": 0.5269115249292028,
+    "balanced_accuracy": 0.5296847021376283,
+    "precision": 0.5513750314412678,
+    "selection_sensitivity_recall": 0.4381902683613466,
+    "specificity": 0.6211791359139099,
+    "f1": 0.4883097114322576,
+    "roc_auc": 0.5419703465958153,
+    "pr_auc": 0.5470419935881027,
+    "matthews_corrcoef": 0.06034087599699648,
+    "tn": 35096,
+    "fp": 21403,
+    "fn": 33726,
+    "tp": 26305
+  },
+  "test_metrics": {
+    "rows": 242219,
+    "positive_rate": 0.4997419690445423,
+    "predicted_positive_rate": 0.3802013880001156,
+    "accuracy": 0.5171188057088832,
+    "balanced_accuracy": 0.5170569867508645,
+    "precision": 0.5221734786952178,
+    "selection_sensitivity_recall": 0.39726717721215726,
+    "specificity": 0.6368467962895719,
+    "f1": 0.4512360478373268,
+    "roc_auc": 0.5220663702868131,
+    "pr_auc": 0.5244386382731219,
+    "matthews_corrcoef": 0.03513743907700263,
+    "tn": 77168,
+    "fp": 44004,
+    "fn": 72959,
+    "tp": 48088
+  },
+  "selection_metrics": [
+    {
+      "top_fraction": 0.05,
+      "selected_rows": 11698,
+      "selected_rate": 0.04829513787110012,
+      "selected_mean_forward_5d_return": 0.0074475714936852455,
+      "universe_mean_forward_5d_return": 0.00289650890044868,
+      "mean_return_spread": 0.004551062360405922,
+      "selected_win_rate_precision": 0.5276970422294409,
+      "selection_sensitivity": 0.050996720282204436
+    },
+    {
+      "top_fraction": 0.1,
+      "selected_rows": 23913,
+      "selected_rate": 0.09872470780574603,
+      "selected_mean_forward_5d_return": 0.0069405678659677505,
+      "universe_mean_forward_5d_return": 0.00289650890044868,
+      "mean_return_spread": 0.004044058732688427,
+      "selected_win_rate_precision": 0.5231464057207377,
+      "selection_sensitivity": 0.10334828620287988
+    },
+    {
+      "top_fraction": 0.2,
+      "selected_rows": 48068,
+      "selected_rate": 0.19844851147102416,
+      "selected_mean_forward_5d_return": 0.005969238001853228,
+      "universe_mean_forward_5d_return": 0.00289650890044868,
+      "mean_return_spread": 0.0030727291014045477,
+      "selected_win_rate_precision": 0.5185362403262045,
+      "selection_sensitivity": 0.20591175328591374
+    }
+  ],
+  "live_screening": {
+    "selection_date": "2020-07-31",
+    "strategy_mode": "binary_positive_then_filter_limit_up",
+    "raw_model_stock_count": 294,
+    "probability_and_tradability_pass_count": 14,
+    "limit_up_filtered_count": 1,
+    "effective_selection_count": 13,
+    "average_probability_up_5d": 0.5296273231506348,
+    "average_expected_5d_return": 0.007136847358196974,
+    "minimum_expected_5d_return": 0.005037299823015928,
+    "maximum_expected_5d_return": 0.00945980753749609,
+    "probability_threshold": 0.507399320602417,
+    "expected_return_horizon": "next open to fifth future trading-day close",
+    "positive_expected_return_count": 13,
+    "selection_rate_after_tradability": 0.9285714285714286
+  },
+  "returns": {
+    "strategy_total_return": 0.925924150066018,
+    "strategy_annualized_return": 0.2008355382978666,
+    "benchmark_total_return": 0.4414475665896269,
+    "benchmark_annualized_return": 0.10749936534208104,
+    "excess_total_return": 0.33339456084640884
+  },
+  "backtest": {
+    "framework": "Qlib backtest + TopkDropoutStrategy + risk_analysis",
+    "signal_source": "Qlib DatasetH XGBoost probability",
+    "price_adjustment": "official Qlib adjusted/normalized prices",
+    "price_usage": "execution and portfolio valuation",
+    "start_date": "2017-01-03",
+    "end_date": "2020-08-03",
+    "rebalance_rule": "every fifth trading signal date",
+    "topk": 50,
+    "holding_period": "five trading days",
+    "account": 100000000,
+    "deal_price": "next trading-day open",
+    "cost_assumption": {
+      "open_cost": 0.0,
+      "close_cost": 0.0,
+      "min_cost": 0.0
+    },
+    "limit_threshold": 0.095,
+    "benchmark": "SH000300",
+    "risk_analysis": [
+      {
+        "series": "strategy_gross",
+        "qlib_annualized_return": 0.20042076643072274,
+        "qlib_information_ratio": 0.9692275161847421,
+        "qlib_max_drawdown": -0.2198859152964734,
+        "compounded_annualized_return": 0.19588168940859352,
+        "compounded_information_ratio": 0.8619809520984792,
+        "compounded_max_drawdown": -0.2055156767238544
+      },
+      {
+        "series": "strategy_after_cost",
+        "qlib_annualized_return": 0.20042076643072274,
+        "qlib_information_ratio": 0.9692275161847421,
+        "qlib_max_drawdown": -0.2198859152964734,
+        "compounded_annualized_return": 0.19588168940859352,
+        "compounded_information_ratio": 0.8619809520984792,
+        "compounded_max_drawdown": -0.2055156767238544
+      },
+      {
+        "series": "equal_weight_universe_benchmark",
+        "qlib_annualized_return": 0.11786440014839172,
+        "qlib_information_ratio": 0.621155313184848,
+        "qlib_max_drawdown": -0.37047892808914185,
+        "compounded_annualized_return": 0.10494804382324219,
+        "compounded_information_ratio": 0.5246459637706432,
+        "compounded_max_drawdown": -0.32462096214294434
+      },
+      {
+        "series": "excess_without_cost",
+        "qlib_annualized_return": 0.08255637380126561,
+        "qlib_information_ratio": 0.9208653753524287,
+        "qlib_max_drawdown": -0.11385008023899432,
+        "compounded_annualized_return": 0.08169717654930464,
+        "compounded_information_ratio": 0.8764806682120847,
+        "compounded_max_drawdown": -0.10896634204537681
+      },
+      {
+        "series": "excess_after_cost",
+        "qlib_annualized_return": 0.08255637380126561,
+        "qlib_information_ratio": 0.9208653753524287,
+        "qlib_max_drawdown": -0.11385008023899432,
+        "compounded_annualized_return": 0.08169717654930464,
+        "compounded_information_ratio": 0.8764806682120847,
+        "compounded_max_drawdown": -0.10896634204537681
+      }
+    ]
+  },
+  "transaction_cost": "zero, retained from the user's earlier instruction",
+  "data_quality": [
+    {
+      "split": "train",
+      "raw_rows": 497147,
+      "feature_available_rows": 497147,
+      "recent_listing_filtered_rows": 633,
+      "daily_metadata_matched_rows": 0,
+      "daily_metadata_coverage": 0.0,
+      "known_ineligible_filtered_rows": 0,
+      "abnormal_label_filtered_rows": 0,
+      "quality_rows_including_unlabeled_live": 496514,
+      "labeled_rows": 475943,
+      "eligibility_fallback": "Before local daily metadata coverage, use official CSI300 dynamic membership, at least 90 calendar days of official price history, and non-missing Alpha158 data."
+    },
+    {
+      "split": "valid",
+      "raw_rows": 136585,
+      "feature_available_rows": 136585,
+      "recent_listing_filtered_rows": 3,
+      "daily_metadata_matched_rows": 136092,
+      "daily_metadata_coverage": 0.9963905260460519,
+      "known_ineligible_filtered_rows": 16420,
+      "abnormal_label_filtered_rows": 0,
+      "quality_rows_including_unlabeled_live": 120162,
+      "labeled_rows": 117887,
+      "eligibility_fallback": "Before local daily metadata coverage, use official CSI300 dynamic membership, at least 90 calendar days of official price history, and non-missing Alpha158 data."
+    },
+    {
+      "split": "test",
+      "raw_rows": 261300,
+      "feature_available_rows": 261300,
+      "recent_listing_filtered_rows": 0,
+      "daily_metadata_matched_rows": 261300,
+      "daily_metadata_coverage": 1.0,
+      "known_ineligible_filtered_rows": 16582,
+      "abnormal_label_filtered_rows": 0,
+      "quality_rows_including_unlabeled_live": 244718,
+      "labeled_rows": 242219,
+      "eligibility_fallback": "Before local daily metadata coverage, use official CSI300 dynamic membership, at least 90 calendar days of official price history, and non-missing Alpha158 data."
+    }
+  ],
+  "pipeline_validation_audit": [
+    {
+      "requirement": "at least 10 stocks",
+      "status": "pass",
+      "evidence": "690 historical CSI300 constituents"
+    },
+    {
+      "requirement": "merge trading and company basic information",
+      "status": "pass",
+      "evidence": "685/690 company records matched"
+    },
+    {
+      "requirement": "mark ST and filter long suspension/new stocks",
+      "status": "pass",
+      "evidence": "daily eligibility merged for 2015-2020; official membership, 90-day history and non-missing feature proxy used earlier"
+    },
+    {
+      "requirement": "OHLC features and future five-day binary label",
+      "status": "pass",
+      "evidence": "all 158 official Alpha158 fields; next open to fifth close"
+    },
+    {
+      "requirement": "XGBoost classification and metrics",
+      "status": "pass",
+      "evidence": "accuracy, confusion matrix, recall and ranking sensitivity"
+    },
+    {
+      "requirement": "filter daily limit-up and output buy candidates",
+      "status": "pass",
+      "evidence": "13 candidates on 2020-07-31"
+    },
+    {
+      "requirement": "backtest returns",
+      "status": "pass",
+      "evidence": "Qlib five-day rebalance Top50, SH000300 benchmark, zero cost"
+    }
+  ],
+  "elapsed_seconds": 249.517
+}

@@ -1,0 +1,16 @@
+{
+  "selection_date": "2020-07-31",
+  "strategy_mode": "binary_positive_then_filter_limit_up",
+  "raw_model_stock_count": 294,
+  "probability_and_tradability_pass_count": 14,
+  "limit_up_filtered_count": 1,
+  "effective_selection_count": 13,
+  "average_probability_up_5d": 0.5296273231506348,
+  "average_expected_5d_return": 0.007136847358196974,
+  "minimum_expected_5d_return": 0.005037299823015928,
+  "maximum_expected_5d_return": 0.00945980753749609,
+  "probability_threshold": 0.507399320602417,
+  "expected_return_horizon": "next open to fifth future trading-day close",
+  "positive_expected_return_count": 13,
+  "selection_rate_after_tradability": 0.9285714285714286
+}

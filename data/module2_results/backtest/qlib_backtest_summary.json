@@ -1,0 +1,67 @@
+{
+  "framework": "Qlib backtest + TopkDropoutStrategy + risk_analysis",
+  "signal_source": "Qlib DatasetH XGBoost probability",
+  "price_adjustment": "official Qlib adjusted/normalized prices",
+  "price_usage": "execution and portfolio valuation",
+  "start_date": "2017-01-03",
+  "end_date": "2020-08-03",
+  "rebalance_rule": "every fifth trading signal date",
+  "topk": 50,
+  "holding_period": "five trading days",
+  "account": 100000000,
+  "deal_price": "next trading-day open",
+  "cost_assumption": {
+    "open_cost": 0.0,
+    "close_cost": 0.0,
+    "min_cost": 0.0
+  },
+  "limit_threshold": 0.095,
+  "benchmark": "SH000300",
+  "risk_analysis": [
+    {
+      "series": "strategy_gross",
+      "qlib_annualized_return": 0.20042076643072274,
+      "qlib_information_ratio": 0.9692275161847421,
+      "qlib_max_drawdown": -0.2198859152964734,
+      "compounded_annualized_return": 0.19588168940859352,
+      "compounded_information_ratio": 0.8619809520984792,
+      "compounded_max_drawdown": -0.2055156767238544
+    },
+    {
+      "series": "strategy_after_cost",
+      "qlib_annualized_return": 0.20042076643072274,
+      "qlib_information_ratio": 0.9692275161847421,
+      "qlib_max_drawdown": -0.2198859152964734,
+      "compounded_annualized_return": 0.19588168940859352,
+      "compounded_information_ratio": 0.8619809520984792,
+      "compounded_max_drawdown": -0.2055156767238544
+    },
+    {
+      "series": "equal_weight_universe_benchmark",
+      "qlib_annualized_return": 0.11786440014839172,
+      "qlib_information_ratio": 0.621155313184848,
+      "qlib_max_drawdown": -0.37047892808914185,
+      "compounded_annualized_return": 0.10494804382324219,
+      "compounded_information_ratio": 0.5246459637706432,
+      "compounded_max_drawdown": -0.32462096214294434
+    },
+    {
+      "series": "excess_without_cost",
+      "qlib_annualized_return": 0.08255637380126561,
+      "qlib_information_ratio": 0.9208653753524287,
+      "qlib_max_drawdown": -0.11385008023899432,
+      "compounded_annualized_return": 0.08169717654930464,
+      "compounded_information_ratio": 0.8764806682120847,
+      "compounded_max_drawdown": -0.10896634204537681
+    },
+    {
+      "series": "excess_after_cost",
+      "qlib_annualized_return": 0.08255637380126561,
+      "qlib_information_ratio": 0.9208653753524287,
+      "qlib_max_drawdown": -0.11385008023899432,
+      "compounded_annualized_return": 0.08169717654930464,
+      "compounded_information_ratio": 0.8764806682120847,
+      "compounded_max_drawdown": -0.10896634204537681
+    }
+  ]
+}

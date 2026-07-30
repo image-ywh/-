@@ -72,38 +72,47 @@ def _base(fig: go.Figure, height: int = 420) -> go.Figure:
     fig.update_layout(
         template="plotly_dark",
         height=height,
-        margin=dict(l=38, r=24, t=68, b=42),
+        margin=dict(l=42, r=26, t=70, b=44),
         hovermode="x unified",
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(4,12,24,0.30)",
-        font=dict(color="#b9c9dd", family="Inter, Microsoft YaHei, sans-serif"),
-        title=dict(font=dict(color="#f0f7ff", size=18), x=0.025, xanchor="left"),
-        colorway=["#38bdf8", "#818cf8", "#2dd4bf", "#f59e0b", "#fb7185", "#a78bfa"],
+        plot_bgcolor="rgba(4,12,24,0.12)",
+        font=dict(
+            color="#b7c7d2",
+            family="Inter, Microsoft YaHei, sans-serif",
+            size=12,
+        ),
+        title=dict(
+            font=dict(color="#f1f7f6", size=18, family="Inter, Microsoft YaHei, sans-serif"),
+            x=0.025,
+            xanchor="left",
+        ),
+        colorway=["#5ee0d0", "#6da8ff", "#9d8df1", "#d6b56f", "#fb7185", "#73c5ea"],
         legend=dict(
-            bgcolor="rgba(8,20,38,0.68)",
-            bordercolor="rgba(125,211,252,0.12)",
+            bgcolor="rgba(6,16,28,0.72)",
+            bordercolor="rgba(151,194,209,0.13)",
             borderwidth=1,
+            font=dict(color="#b8c9d3", size=11),
         ),
         hoverlabel=dict(
-            bgcolor="#0b1930",
-            bordercolor="rgba(125,211,252,0.25)",
-            font=dict(color="#edf7ff"),
+            bgcolor="#091726",
+            bordercolor="rgba(102,226,211,0.28)",
+            font=dict(color="#eff9f7"),
         ),
         transition=dict(duration=420, easing="cubic-in-out"),
     )
     fig.update_xaxes(
-        gridcolor="rgba(148,163,184,0.10)",
-        zerolinecolor="rgba(148,163,184,0.14)",
-        linecolor="rgba(148,163,184,0.16)",
-        tickfont=dict(color="#8da3bd"),
-        title_font=dict(color="#9fb3ca"),
+        gridcolor="rgba(151,194,209,0.075)",
+        zerolinecolor="rgba(151,194,209,0.14)",
+        linecolor="rgba(151,194,209,0.14)",
+        tickfont=dict(color="#8ca1b2"),
+        title_font=dict(color="#9fb3bf"),
     )
     fig.update_yaxes(
-        gridcolor="rgba(148,163,184,0.10)",
-        zerolinecolor="rgba(148,163,184,0.14)",
-        linecolor="rgba(148,163,184,0.16)",
-        tickfont=dict(color="#8da3bd"),
-        title_font=dict(color="#9fb3ca"),
+        gridcolor="rgba(151,194,209,0.075)",
+        zerolinecolor="rgba(151,194,209,0.14)",
+        linecolor="rgba(151,194,209,0.14)",
+        tickfont=dict(color="#8ca1b2"),
+        title_font=dict(color="#9fb3bf"),
     )
     return fig
 

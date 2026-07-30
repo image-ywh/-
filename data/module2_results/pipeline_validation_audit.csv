@@ -1,0 +1,8 @@
+﻿requirement,status,evidence
+at least 10 stocks,pass,690 historical CSI300 constituents
+merge trading and company basic information,pass,685/690 company records matched
+mark ST and filter long suspension/new stocks,pass,"daily eligibility merged for 2015-2020; official membership, 90-day history and non-missing feature proxy used earlier"
+OHLC features and future five-day binary label,pass,all 158 official Alpha158 fields; next open to fifth close
+XGBoost classification and metrics,pass,"accuracy, confusion matrix, recall and ranking sensitivity"
+filter daily limit-up and output buy candidates,pass,13 candidates on 2020-07-31
+backtest returns,pass,"Qlib five-day rebalance Top50, SH000300 benchmark, zero cost"
